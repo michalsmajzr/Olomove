@@ -1,0 +1,6 @@
+@Olomove_HostAddress = http://localhost:5147
+
+GET {{Olomove_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
