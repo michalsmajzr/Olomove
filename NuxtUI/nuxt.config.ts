@@ -31,6 +31,24 @@ export default defineNuxtConfig({
       }
     : undefined,
 
+  icon: {
+    clientBundle: {
+      scan: true,
+      icons: [
+        'lucide:arrow-left',
+        'lucide:circle-user-round',
+        'lucide:eye',
+        'lucide:eye-off',
+        'lucide:instagram',
+        'lucide:log-in',
+        'lucide:log-out',
+        'lucide:menu',
+        'lucide:user-round-plus',
+        'lucide:x'
+      ]
+    }
+  },
+
   routeRules: {
     '/': { prerender: true }
   },
