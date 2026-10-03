@@ -18,7 +18,7 @@ services:
   aspnetapi:
     image: mcr.microsoft.com/dotnet/sdk:10.0
     working_dir: /src/Olomove
-    command: sh -c "dotnet restore && dotnet watch run --no-restore"
+    command: sh -c "dotnet restore && dotnet watch run --no-launch-profile --no-restore"
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_URLS: http://+:8080

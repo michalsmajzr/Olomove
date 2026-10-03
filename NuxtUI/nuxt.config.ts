@@ -24,7 +24,7 @@ export default defineNuxtConfig({
     ? {
         devProxy: {
           '/api': {
-            target: apiProxyTarget,
+            target: `${apiProxyTarget}/api`,
             changeOrigin: true
           }
         }
