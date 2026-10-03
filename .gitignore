@@ -11,6 +11,8 @@
 **/obj/
 *.user
 *.suo
+*.backup
+*.Backup.tmp
 
 # Nuxt generated files and dependencies
 node_modules/
