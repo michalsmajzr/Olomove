@@ -24,12 +24,16 @@ builder.Services
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddDefaultTokenProviders();
 
-// The Nuxt app and API use different local origins, so the authentication
-// cookie must be allowed on credentialed requests from the frontend.
+// Docker development serves the API through Nuxt's local proxy. In production
+// the cookie remains secure and can be used by a separately hosted frontend.
 builder.Services.ConfigureApplicationCookie(options =>
 {
-    options.Cookie.SameSite = SameSiteMode.None;
-    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+    options.Cookie.SameSite = builder.Environment.IsDevelopment()
+        ? SameSiteMode.Lax
+        : SameSiteMode.None;
+    options.Cookie.SecurePolicy = builder.Environment.IsDevelopment()
+        ? CookieSecurePolicy.SameAsRequest
+        : CookieSecurePolicy.Always;
 });
 
 // allow the separate Nuxt frontend to send authenticated requests to the API
@@ -40,6 +44,13 @@ builder.Services.AddCors(options => options.AddPolicy("Nuxt", policy => policy
     .AllowCredentials()));
 
 var app = builder.Build();
+
+if (builder.Configuration.GetValue<bool>("Database:ApplyMigrationsOnStartup"))
+{
+    using var scope = app.Services.CreateScope();
+    var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    await dbContext.Database.MigrateAsync();
+}
 
 await IdentitySeeder.SeedAsync(app.Services, builder.Configuration);
 

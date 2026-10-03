@@ -1,3 +1,5 @@
+const apiProxyTarget = process.env.NUXT_API_PROXY_TARGET
+
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   modules: [
@@ -17,6 +19,17 @@ export default defineNuxtConfig({
       apiBase: 'https://localhost:7168'
     }
   },
+
+  nitro: apiProxyTarget
+    ? {
+        devProxy: {
+          '/api': {
+            target: apiProxyTarget,
+            changeOrigin: true
+          }
+        }
+      }
+    : undefined,
 
   routeRules: {
     '/': { prerender: true }
