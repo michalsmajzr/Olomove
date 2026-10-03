@@ -1,9 +1,0 @@
-{
-  "pid": 7352,
-  "startedAt": 1790776956340,
-  "command": "dev",
-  "cwd": "C:/Users/micha/source/repos/Olomove/NuxtUI",
-  "port": 3000,
-  "hostname": "::1",
-  "url": "http://[::1]:3000"
-}
