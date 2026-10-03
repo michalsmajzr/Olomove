@@ -2,15 +2,12 @@
 const config = useRuntimeConfig()
 type CurrentUser = { roles: string[] }
 const currentUser = ref<CurrentUser | null>(null)
-const authLoaded = ref(false)
 
 onMounted(async () => {
   try {
     currentUser.value = await $fetch<CurrentUser>(`${config.public.apiBase}/api/auth/me`, { credentials: 'include' })
   } catch {
     currentUser.value = null
-  } finally {
-    authLoaded.value = true
   }
 })
 
@@ -74,7 +71,7 @@ async function logout() {
       />
 
       <!-- Right icons -->
-      <div v-if="authLoaded && isLoggedIn" class="hidden items-center gap-4 md:flex">
+      <div v-if="isLoggedIn" class="hidden items-center gap-4 md:flex">
         <UButton
           label="Počet kreditů"
           color="primary"
@@ -103,7 +100,7 @@ async function logout() {
         />
       </div>
 
-      <div v-else-if="authLoaded" class="hidden items-center gap-4 md:flex">
+      <div v-else class="hidden items-center gap-4 md:flex">
         <UButton
           to="https://www.instagram.com/"
           target="_blank"
