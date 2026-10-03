@@ -1,7 +1,0 @@
-<Solution>
-  <Project Path="../../../../../../source/repos/Olomove/NuxtUI/NuxtUI.esproj">
-    <Build />
-    <Deploy />
-  </Project>
-  <Project Path="../../../../../../source/repos/Olomove/Olomove/Olomove.csproj" />
-</Solution>
