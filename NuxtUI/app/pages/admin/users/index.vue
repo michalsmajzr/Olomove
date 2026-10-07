@@ -1,5 +1,4 @@
 <script setup lang="ts">
-
 definePageMeta({
   middleware: 'admin'
 })
@@ -12,12 +11,10 @@ type UserRow = {
   credit: number
 }
 
-type CurrentUser = { roles: string[] }
-
-const config = useRuntimeConfig()
 const users = ref<UserRow[]>([])
 const isLoading = ref(true)
 const errorMessage = ref('')
+const isUpdating = ref<string | null>(null)
 
 const columns = [
   { accessorKey: 'name', header: 'Jméno' },
@@ -33,9 +30,16 @@ const roleLabels: Record<string, string> = {
   User: 'Klient'
 }
 
+const roleOptions = [
+  { label: 'Uživatel', value: 'User' },
+  { label: 'Lektor', value: 'Lecturer' },
+  { label: 'Učitel', value: 'Teacher' }
+]
+
 const tableRows = computed(() => users.value.map(user => ({
   ...user,
-  role: roleLabels[user.role] ?? user.role,
+  originalRole: user.role,
+  roleLabel: roleLabels[user.role] ?? user.role,
   credit: `${user.credit.toLocaleString('cs-CZ')} Kč`
 })))
 
@@ -50,6 +54,27 @@ onMounted(async () => {
     isLoading.value = false
   }
 })
+
+async function updateRole(userId: string, selectedRole: string) {
+  if (!selectedRole) return
+
+  isUpdating.value = userId
+  try {
+    await $fetch(`/api/admin/users/${userId}/role`, {
+      method: 'PUT',
+      body: { role: selectedRole },
+      credentials: 'include'
+    })
+    const user = users.value.find(u => u.id === userId)
+    if (user) {
+      user.role = selectedRole
+    }
+  } catch {
+    alert('Nepodařilo se změnit roli.')
+  } finally {
+    isUpdating.value = null
+  }
+}
 </script>
 
 <template>
@@ -63,7 +88,7 @@ onMounted(async () => {
             Uživatelé
           </h1>
           <p class="mt-2 text-base text-muted">
-            Správa klientů
+            Správa klientů a rolí
           </p>
         </div>
 
@@ -79,7 +104,25 @@ onMounted(async () => {
             :data="tableRows"
             :columns="columns"
             class="w-full"
-          />
+          >
+            <template #role-cell="{ row }">
+              <span v-if="row.original.originalRole === 'Admin'" class="font-medium text-slate-500">
+                {{ row.original.roleLabel }}
+              </span>
+
+              <USelect
+                v-else
+                :model-value="row.original.originalRole"
+                :items="roleOptions"
+                label-key="label"
+                value-key="value"
+                :loading="isUpdating === row.original.id"
+                :disabled="isUpdating === row.original.id"
+                class="w-40"
+                @update:model-value="updateRole(row.original.id, $event)"
+              />
+            </template>
+          </UTable>
 
           <div v-else class="px-6 py-10 text-sm text-muted">
             {{ errorMessage || 'Načítání uživatelů…' }}

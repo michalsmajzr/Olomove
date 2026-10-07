@@ -48,4 +48,57 @@ public class AdminUsersController(UserManager<User> userManager) : ControllerBas
 
         return Ok(response);
     }
+
+    public class ChangeRoleRequest
+    {
+        public required string Role { get; set; }
+    }
+
+    [HttpPut("{id:guid}/role")]
+    public async Task<IActionResult> ChangeRole(Guid id, [FromBody] ChangeRoleRequest request)
+    {
+        if (request.Role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
+        {
+            return BadRequest("Roli Administrátor nelze takto přiřadit.");
+        }
+
+        var currentUserId = userManager.GetUserId(User);
+        if (currentUserId == id.ToString())
+        {
+            return BadRequest("Nemůžete změnit roli sami sobě.");
+        }
+
+        var user = await userManager.FindByIdAsync(id.ToString());
+        if (user == null)
+        {
+            return NotFound("Uživatel nebyl nalezen.");
+        }
+
+        var currentRoles = await userManager.GetRolesAsync(user);
+        if (currentRoles.Contains("Admin"))
+        {
+            return BadRequest("Nelze změnit roli jinému administrátorovi.");
+        }
+
+        if (currentRoles.Any())
+        {
+            var removeResult = await userManager.RemoveFromRolesAsync(user, currentRoles);
+            if (!removeResult.Succeeded)
+            {
+                return BadRequest("Nepodařilo se odebrat stávající roli uživatele.");
+            }
+        }
+
+        var addResult = await userManager.AddToRoleAsync(user, request.Role);
+        if (!addResult.Succeeded)
+        {
+            if (currentRoles.Any())
+            {
+                await userManager.AddToRolesAsync(user, currentRoles);
+            }
+            return BadRequest($"Role '{request.Role}' neexistuje nebo se ji nepodařilo přiřadit.");
+        }
+
+        return NoContent();
+    }
 }

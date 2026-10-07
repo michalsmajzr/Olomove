@@ -5,6 +5,7 @@ using Olomove.Contracts.Courses;
 using Olomove.Data;
 using Olomove.Models;
 namespace Olomove.Controllers;
+using Microsoft.EntityFrameworkCore;
 
 [ApiController]
 [Authorize(Roles = "Admin")]
@@ -48,7 +49,7 @@ public class AdminCoursesController(
         {
             Name = request.Name.Trim(),
             CourseType = request.CourseType.Trim(),
-            DanceStyle = request.DanceStyle.Trim(),
+            DanceStyle = await dbContext.DanceStyles.FirstOrDefaultAsync(x => x.Name == request.DanceStyle.Trim()),
             Level = request.Level,
             InstructorId = instructor?.Id,
             Room = request.Room.Trim(),

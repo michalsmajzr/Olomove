@@ -1,6 +1,3 @@
-const apiProxyTarget = process.env.NUXT_API_PROXY_TARGET
-
-// https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   modules: [
     '@nuxt/eslint',
@@ -15,21 +12,25 @@ export default defineNuxtConfig({
 
   runtimeConfig: {
     public: {
-      // In production override with NUXT_PUBLIC_API_BASE.
-      apiBase: 'https://localhost:7168'
+      apiBase: ''
     }
   },
 
-  nitro: apiProxyTarget
-    ? {
-        devProxy: {
-          '/api': {
-            target: `${apiProxyTarget}/api`,
-            changeOrigin: true
-          }
-        }
+  routeRules: {
+    '/': { prerender: true },
+    '/api/**': { proxy: 'http://localhost:5147/api/**' }
+  },
+
+  compatibilityDate: '2026-06-30',
+
+  eslint: {
+    config: {
+      stylistic: {
+        commaDangle: 'never',
+        braceStyle: '1tbs'
       }
-    : undefined,
+    }
+  },
 
   icon: {
     clientBundle: {
@@ -46,21 +47,6 @@ export default defineNuxtConfig({
         'lucide:user-round-plus',
         'lucide:x'
       ]
-    }
-  },
-
-  routeRules: {
-    '/': { prerender: true }
-  },
-
-  compatibilityDate: '2026-06-30',
-
-  eslint: {
-    config: {
-      stylistic: {
-        commaDangle: 'never',
-        braceStyle: '1tbs'
-      }
     }
   }
 })

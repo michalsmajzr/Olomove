@@ -1,5 +1,4 @@
 <script setup lang="ts">
-
 definePageMeta({
   middleware: 'admin'
 })
@@ -14,10 +13,26 @@ type UserRow = {
 
 type CurrentUser = { roles: string[] }
 
+interface DanceStyle {
+  id: string
+  name: string
+  genre: string | null
+  description: string | null
+}
+
 const config = useRuntimeConfig()
+const toast = useToast()
 const users = ref<UserRow[]>([])
 const isLoading = ref(true)
 const errorMessage = ref('')
+const isAddDanceOpen = ref(false)
+const isAddingDance = ref(false)
+
+const danceFormData = reactive({
+  name: '',
+  genre: '',
+  description: ''
+})
 
 const form = reactive({
   name: '',
@@ -42,22 +57,26 @@ const courseTypes = [
   { label: 'Školní kurz', value: 'school' }
 ]
 
-const danceStyles = [
-  { label: 'Tanec nevybrán', value: 'unassigned' },
-]
+const danceStyles = ref<{ label: string; value: string }[]>([])
+
+onMounted(async () => {
+  try {
+    const styles = await $fetch<DanceStyle[]>('/api/admin/dancestyles', { credentials: 'include' })
+    if (Array.isArray(styles) && styles.length) {
+      danceStyles.value = styles.map((s) => ({ label: s.name, value: s.id }))
+    } else {
+      danceStyles.value = []
+    }
+  } catch (err) {
+    danceStyles.value = []
+    console.error('Failed to load dance styles', err)
+  }
+})
 
 const levels = Array.from({ length: 8 }, (_, index) => ({
   label: `Úroveň ${index + 1}`,
   value: String(index + 1)
 }))
-
-const instructors = [
-  { label: 'Zatím nevybrán', value: 'unassigned' },
-]
-
-const rooms = [
-  { label: 'Sál nevybrán', value: 'unassigned' },
-]
 
 const weekdays = [
   { label: 'Pondělí', value: 'monday' },
@@ -69,6 +88,60 @@ const weekdays = [
   { label: 'Neděle', value: 'sunday' }
 ]
 
+async function addNewDance() {
+  if (!danceFormData.name.trim()) {
+    toast.add({
+      title: 'Chyba',
+      description: 'Název tance je povinný.',
+      color: 'error'
+    })
+    return
+  }
+
+  isAddingDance.value = true
+  try {
+    const created = await $fetch<DanceStyle>('/api/admin/dancestyles', {
+      method: 'POST',
+      body: {
+        name: danceFormData.name.trim(),
+        genre: danceFormData.genre.trim() || null,
+        description: danceFormData.description.trim() || null
+      },
+      credentials: 'include'
+    })
+
+    // Add created style to local select options and preselect it
+    if (created && created.id) {
+      danceStyles.value.unshift({ label: created.name, value: created.id })
+      form.danceStyle = created.id
+    }
+
+    toast.add({
+      title: 'Úspěch',
+      description: `Tanec "${created?.name ?? danceFormData.name}" byl úspěšně přidán do databáze.`,
+      color: 'success'
+    })
+
+    closeDanceModal()
+  } catch (error: any) {
+    toast.add({
+      title: 'Chyba',
+      description:
+        error?.data?.message ||
+        'Nepodařilo se přidat tanec. Zkuste to prosím později.',
+      color: 'error'
+    })
+  } finally {
+    isAddingDance.value = false
+  }
+}
+
+function closeDanceModal() {
+  isAddDanceOpen.value = false
+  danceFormData.name = ''
+  danceFormData.genre = ''
+  danceFormData.description = ''
+}
 </script>
 
 <template>
@@ -119,24 +192,91 @@ const weekdays = [
 
         <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
           <UFormField label="Styl tance" required>
-            <USelect
-              v-model="form.danceStyle"
-              :items="danceStyles"
-              :ui="{ base: 'cursor-pointer data-[state=open]:cursor-pointer', item: 'cursor-pointer', itemLabel: 'cursor-pointer', itemTrailing: 'cursor-pointer', itemTrailingIcon: 'cursor-pointer' }"
-              class="w-full"
-              placeholder="Vyberte tanec"
-            />
+            <div class="space-y-2">
+              <USelect
+                v-model="form.danceStyle"
+                :items="danceStyles"
+                :ui="{ base: 'cursor-pointer data-[state=open]:cursor-pointer', item: 'cursor-pointer', itemLabel: 'cursor-pointer', itemTrailing: 'cursor-pointer', itemTrailingIcon: 'cursor-pointer' }"
+                class="w-full"
+                placeholder="Vyberte tanec"
+              />
+              <UModal v-model:open="isAddDanceOpen" @close="closeDanceModal" :ui="{ base: 'max-w-4xl w-full', footer: 'justify-end' }">
+                <UButton
+                  icon="i-lucide-plus"
+                  color="primary"
+                  :ui="{ base: 'cursor-pointer' }"
+                  label="Přidat nový tanec"
+                  variant="outline"
+                  @click="isAddDanceOpen = true"
+                />
+
+                <template #body>
+                  <div class="p-6">
+                    <div class="mb-6">
+                      <h2 class="text-lg font-semibold text-highlighted">
+                        Přidat nový tanec
+                      </h2>
+                    </div>
+
+                    <div class="space-y-6">
+                      <UFormField label="Název tance" required>
+                        <UInput
+                          v-model="danceFormData.name"
+                          class="w-full"
+                          placeholder="např. Waltz, Tango, Samba…"
+                          :disabled="isAddingDance"
+                          @keydown.enter="addNewDance"
+                        />
+                      </UFormField>
+
+                      <UFormField label="Žánr (volitelné)">
+                        <UInput
+                          v-model="danceFormData.genre"
+                          class="w-full"
+                          placeholder="např. Společenský tanec, Latinskoamerický…"
+                          :disabled="isAddingDance"
+                          @keydown.enter="addNewDance"
+                        />
+                      </UFormField>
+
+                      <UFormField label="Popis (volitelné)">
+                        <UTextarea
+                          v-model="danceFormData.description"
+                          class="w-full"
+                          placeholder="Krátký popis tance…"
+                          :rows="4"
+                          :disabled="isAddingDance"
+                        />
+                      </UFormField>
+                    </div>
+                  </div>
+                </template>
+
+                <template #footer="{ close }">
+                  <UButton label="Zrušit" color="primary" variant="outline" @click="close" :ui="{ base: 'cursor-pointer' }" />
+                  <UButton
+                    label="Přidat tanec"
+                    color="primary"
+                    @click="addNewDance"
+                    :loading="isAddingDance"
+                    :disabled="!danceFormData.name.trim() || isAddingDance"
+                    :ui="{ base: 'cursor-pointer' }"
+                  />
+                </template>
+              </UModal>
+            </div>
           </UFormField>
 
-          <UFormField label="Úroveň" required>
-            <USelect
-              v-model="form.level"
-              :items="levels"
-              :ui="{ base: 'cursor-pointer data-[state=open]:cursor-pointer', item: 'cursor-pointer', itemLabel: 'cursor-pointer', itemTrailing: 'cursor-pointer', itemTrailingIcon: 'cursor-pointer' }"
-              class="w-full"
-              placeholder="Vyberte úroveň"
-            />
-          </UFormField>
+
+          <UFormField label="Sál" required>
+           <USelect
+             v-model="form.room"
+             :items="rooms"
+             :ui="{ base: 'cursor-pointer data-[state=open]:cursor-pointer', item: 'cursor-pointer', itemLabel: 'cursor-pointer', itemTrailing: 'cursor-pointer', itemTrailingIcon: 'cursor-pointer' }"
+             class="w-full"
+             placeholder="Vyberte sál"
+           />
+         </UFormField>
         </div>
 
         <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
@@ -150,15 +290,15 @@ const weekdays = [
             />
           </UFormField>
 
-          <UFormField label="Sál" required>
-            <USelect
-              v-model="form.room"
-              :items="rooms"
-              :ui="{ base: 'cursor-pointer data-[state=open]:cursor-pointer', item: 'cursor-pointer', itemLabel: 'cursor-pointer', itemTrailing: 'cursor-pointer', itemTrailingIcon: 'cursor-pointer' }"
-              class="w-full"
-              placeholder="Vyberte sál"
-            />
-          </UFormField>
+         <UFormField label="Úroveň" required>
+          <USelect
+            v-model="form.level"
+            :items="levels"
+            :ui="{ base: 'cursor-pointer data-[state=open]:cursor-pointer', item: 'cursor-pointer', itemLabel: 'cursor-pointer', itemTrailing: 'cursor-pointer', itemTrailingIcon: 'cursor-pointer' }"
+            class="w-full"
+            placeholder="Vyberte úroveň"
+          />
+        </UFormField>
         </div>
 
         <div class="border-t border-default pt-6">

@@ -15,43 +15,42 @@ services:
       timeout: 5s
       retries: 10
 
-  aspnetapi:
-    image: mcr.microsoft.com/dotnet/sdk:10.0
-    working_dir: /src/Olomove
-    command: sh -c "dotnet restore && dotnet watch run --no-launch-profile --no-restore"
-    environment:
-      ASPNETCORE_ENVIRONMENT: Development
-      ASPNETCORE_URLS: http://+:8080
-      DOTNET_USE_POLLING_FILE_WATCHER: "true"
-      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=olomove;Username=olomove;Password=${POSTGRES_PASSWORD:-olomove-local-password}
-      Cors__AllowedOrigins__0: http://localhost:3000
-      Database__ApplyMigrationsOnStartup: "true"
-      InitialAdmin__Email: ${INITIAL_ADMIN_EMAIL:-admin@olomove.local}
-      InitialAdmin__Password: ${INITIAL_ADMIN_PASSWORD:-Admin123!}
-      InitialAdmin__FirstName: ${INITIAL_ADMIN_FIRST_NAME:-Admin}
-      InitialAdmin__LastName: ${INITIAL_ADMIN_LAST_NAME:-Olomove}
-    volumes:
-      - ./Olomove:/src/Olomove
-    depends_on:
-      postgres:
-        condition: service_healthy
+  # aspnetapi:
+  #   image: mcr.microsoft.com/dotnet/sdk:10.0
+  #   working_dir: /src/Olomove
+  #   command: sh -c "dotnet restore && dotnet watch run --no-restore"
+  #   environment:
+  #     ASPNETCORE_ENVIRONMENT: Development
+  #     ASPNETCORE_URLS: http://+:8080
+  #     DOTNET_USE_POLLING_FILE_WATCHER: "true"
+  #     ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=olomove;Username=olomove;Password=${POSTGRES_PASSWORD:-olomove-local-password}
+  #     Cors__AllowedOrigins__0: http://localhost:3000
+  #     Database__ApplyMigrationsOnStartup: "true"
+  #     InitialAdmin__Email: ${INITIAL_ADMIN_EMAIL:-admin@olomove.local}
+  #     InitialAdmin__Password: ${INITIAL_ADMIN_PASSWORD:-Admin123!}
+  #     InitialAdmin__FirstName: ${INITIAL_ADMIN_FIRST_NAME:-Admin}
+  #     InitialAdmin__LastName: ${INITIAL_ADMIN_LAST_NAME:-Olomove}
+  #   volumes:
+  #     - ./Olomove:/src/Olomove
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
 
-  nuxt:
-    image: node:22-alpine
-    working_dir: /app
-    command: sh -c "corepack enable && pnpm install --frozen-lockfile && pnpm dev --host 0.0.0.0 --port 3000"
-    environment:
-      NUXT_PUBLIC_API_BASE: http://localhost:3000
-      NUXT_API_PROXY_TARGET: http://aspnetapi:8080
-      CHOKIDAR_USEPOLLING: "true"
-    ports:
-      - "3000:3000"
-    volumes:
-      - ./NuxtUI:/app
-      - nuxt_node_modules:/app/node_modules
-    depends_on:
-      - aspnetapi
+  # nuxt:
+  #   image: node:22-alpine
+  #   working_dir: /app
+  #   command: sh -c "corepack enable && pnpm install --frozen-lockfile && pnpm dev --host 0.0.0.0 --port 3000"
+  #   environment:
+  #     NUXT_PUBLIC_API_BASE: http://localhost:3000
+  #     NUXT_API_PROXY_TARGET: http://aspnetapi:8080
+  #   ports:
+  #     - "3000:3000"
+  #   volumes:
+  #     - ./NuxtUI:/app
+  #     - nuxt_node_modules:/app/node_modules
+  #   depends_on:
+  #     - aspnetapi
 
 volumes:
   postgres_data:
-  nuxt_node_modules:
+  # nuxt_node_modules:

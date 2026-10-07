@@ -61,10 +61,10 @@ async function login() {
             </template>
           </UInput>
         </UFormField>
-        <div class="flex items-center justify-between">
+        <!--<div class="flex items-center justify-between">
           <UCheckbox v-model="form.rememberMe" label="Pamatovat si mě" class="cursor-pointer" />
           <NuxtLink to="/forgot-password" class="cursor-pointer text-primary underline">Zapomenuté heslo?</NuxtLink>
-        </div>
+        </div>-->
         <UButton block type="submit" size="lg" :loading="loading" label="Přihlásit se" class="cursor-pointer" />
       </UForm>
       <p class="text-center text-slate-500">Nemáte účet? <NuxtLink to="/signup" class="cursor-pointer text-primary underline">Zaregistrujte se</NuxtLink></p>

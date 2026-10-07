@@ -7,8 +7,9 @@ public class Course
     public required string Name { get; set; }
 
     public required string CourseType { get; set; }
+    public Guid DanceStyleId { get; set; }
 
-    public required string DanceStyle { get; set; }
+    public DanceStyle? DanceStyle { get; set; }
 
     public int Level { get; set; }
 

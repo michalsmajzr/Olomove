@@ -17,7 +17,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 
 // configure ASP.NET Core Identity for users, roles and password management
 builder.Services
-    .AddIdentity<User, IdentityRole<Guid>>(options =>
+    .AddIdentity<User, Role>(options =>
     {
         options.User.RequireUniqueEmail = true;
         options.SignIn.RequireConfirmedAccount = false;
@@ -25,7 +25,6 @@ builder.Services
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddDefaultTokenProviders();
 
-// Docker development serves the API through Nuxt's local proxy. In production
 // the cookie remains secure and can be used by a separately hosted frontend.
 builder.Services.ConfigureApplicationCookie(options =>
 {
@@ -53,7 +52,8 @@ if (builder.Configuration.GetValue<bool>("Database:ApplyMigrationsOnStartup"))
     await dbContext.Database.MigrateAsync();
 }
 
-await IdentitySeeder.SeedAsync(app.Services, builder.Configuration);
+// Seedování rolí a uživatelů
+await DbSeeder.SeedAsync(app.Services, builder.Configuration);
 
 // configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

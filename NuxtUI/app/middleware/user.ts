@@ -1,3 +1,4 @@
+// middleware to protect routes for authenticated users only
 export default defineNuxtRouteMiddleware(async () => {
   const config = useRuntimeConfig()
 

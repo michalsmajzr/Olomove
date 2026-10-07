@@ -1,4 +1,3 @@
-// middleware to protect routes for admins only
 export default defineNuxtRouteMiddleware(async () => {
   const config = useRuntimeConfig()
 
@@ -10,7 +9,7 @@ export default defineNuxtRouteMiddleware(async () => {
       }
     )
 
-    if (!currentUser.roles.includes('Admin')) {
+    if (!currentUser.roles.includes('Instructor')) {
       return navigateTo('/')
     }
   } catch {
