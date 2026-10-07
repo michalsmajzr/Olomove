@@ -1,14 +1,27 @@
 <script setup lang="ts">
 const config = useRuntimeConfig()
+const route = useRoute()
 type CurrentUser = { roles: string[] }
-const currentUser = ref<CurrentUser | null>(null)
 
-onMounted(async () => {
+const currentUser = useState<CurrentUser | null>('auth-user', () => null)
+const isAuthLoaded = useState<boolean>('auth-loaded', () => false)
+
+async function fetchUser() {
   try {
     currentUser.value = await $fetch<CurrentUser>(`${config.public.apiBase}/api/auth/me`, { credentials: 'include' })
   } catch {
     currentUser.value = null
+  } finally {
+    isAuthLoaded.value = true
   }
+}
+
+onMounted(() => {
+  fetchUser()
+})
+
+watch(() => route.path, () => {
+  fetchUser()
 })
 
 const isLoggedIn = computed(() => currentUser.value !== null)
@@ -30,7 +43,7 @@ const signedInMenuItems = [
 
 const adminMenuItems = [
   { label: 'O nás', to: '/o-nas' },
-  { label: 'Uživatelé', to: '/users' },
+  { label: 'Uživatelé', to: '/admin/users' },
   { label: 'Plánování kurzů', to: '/admin/courses' },
   { label: 'Kontakty', to: '/kontakty' }
 ]
@@ -47,6 +60,7 @@ async function logout() {
     credentials: 'include'
   })
   currentUser.value = null
+  isAuthLoaded.value = false
   await navigateTo('/')
 }
 </script>
@@ -54,13 +68,12 @@ async function logout() {
 <template>
   <header class="relative border-b border-slate-200 bg-white">
     <div class="mx-auto flex h-20 max-w-7xl items-center justify-between px-6">
-      <!-- Logo -->
-     <NuxtLink to="/">
-      <AppLogo class="h-14 pt-2 pb-4 w-auto" />
-    </NuxtLink>
+      <NuxtLink to="/">
+        <AppLogo class="h-14 pt-2 pb-4 w-auto" />
+      </NuxtLink>
 
-      <!-- Navigation menu -->
       <UNavigationMenu
+        v-if="isAuthLoaded"
         :items="computedRole"
         orientation="horizontal"
         class="hidden md:flex"
@@ -70,61 +83,64 @@ async function logout() {
         }"
       />
 
-      <!-- Right icons -->
-      <div v-if="isLoggedIn" class="hidden items-center gap-4 md:flex">
-        <UButton
-          v-if="!isAdmin"
-          label="Počet kreditů"
-          color="primary"
-          size="sm"
-          class="cursor-pointer"
-        />
+      <div v-if="isAuthLoaded" class="hidden items-center gap-4 md:flex">
+        <template v-if="isLoggedIn">
+          <UButton
+            v-if="!isAdmin"
+            label="Počet kreditů"
+            color="primary"
+            size="sm"
+            class="cursor-pointer"
+          />
+          <UButton
+            to="/profile"
+            icon="i-lucide-circle-user-round"
+            aria-label="Můj profil"
+            variant="ghost"
+            color="neutral"
+            class="text-highlighted hover:bg-transparent hover:opacity-80"
+            :ui="{ base: 'size-6 p-0', leadingIcon: 'size-6' }"
+          />
+          <UButton
+            icon="i-lucide-log-out"
+            aria-label="Odhlášení"
+            variant="ghost"
+            color="neutral"
+            class="cursor-pointer text-highlighted hover:bg-transparent hover:opacity-80"
+            :ui="{ base: 'size-6 p-0', leadingIcon: 'size-6' }"
+            @click="logout"
+          />
+        </template>
 
-        <UButton
-          to="/profile"
-          icon="i-lucide-circle-user-round"
-          aria-label="Můj profil"
-          variant="ghost"
-          color="neutral"
-          class="text-highlighted hover:bg-transparent hover:opacity-80"
-          :ui="{ base: 'size-6 p-0', leadingIcon: 'size-6' }"
-        />
-
-        <UButton
-          icon="i-lucide-log-out"
-          aria-label="Odhlášení"
-          variant="ghost"
-          color="neutral"
-          class="cursor-pointer text-highlighted hover:bg-transparent hover:opacity-80"
-          :ui="{ base: 'size-6 p-0', leadingIcon: 'size-6' }"
-          @click="logout"
-        />
+        <template v-else>
+          <UButton
+            to="https://www.instagram.com/"
+            target="_blank"
+            icon="i-lucide-instagram"
+            aria-label="Instagram"
+            variant="ghost"
+            color="neutral"
+            class="text-highlighted hover:bg-transparent hover:opacity-80"
+            :ui="{ base: 'size-6 p-0', leadingIcon: 'size-6' }"
+          />
+          <UButton
+            to="/login"
+            icon="i-lucide-log-in"
+            aria-label="Přihlášení"
+            variant="ghost"
+            color="neutral"
+            class="text-highlighted hover:bg-transparent hover:opacity-80"
+            :ui="{ base: 'size-6 p-0', leadingIcon: 'size-6' }"
+          />
+        </template>
       </div>
 
-      <div v-else class="hidden items-center gap-4 md:flex">
-        <UButton
-          to="https://www.instagram.com/"
-          target="_blank"
-          icon="i-lucide-instagram"
-          aria-label="Instagram"
-          variant="ghost"
-          color="neutral"
-          class="text-highlighted hover:bg-transparent hover:opacity-80"
-          :ui="{ base: 'size-6 p-0', leadingIcon: 'size-6' }"
-        />
-
-        <UButton
-          to="/login"
-          icon="i-lucide-log-in"
-          aria-label="Přihlášení"
-          variant="ghost"
-          color="neutral"
-          class="text-highlighted hover:bg-transparent hover:opacity-80"
-          :ui="{ base: 'size-6 p-0', leadingIcon: 'size-6' }"
-        />
-      </div>
-
-      <HamburgerMenu :items="computedRole" :authenticated="isLoggedIn" @logout="logout" />
+      <HamburgerMenu 
+        v-if="isAuthLoaded" 
+        :items="computedRole" 
+        :authenticated="isLoggedIn" 
+        @logout="logout" 
+      />
     </div>
   </header>
 </template>

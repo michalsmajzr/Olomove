@@ -10,4 +10,8 @@ public class ApplicationDbContext : IdentityDbContext<User, IdentityRole<Guid>, 
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options)
     {
     }
+
+    public DbSet<Course> Courses => Set<Course>();
+
+    public DbSet<CourseSession> CourseSessions => Set<CourseSession>();
 }

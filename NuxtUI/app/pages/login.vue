@@ -13,7 +13,7 @@ async function login() {
     const user = await $fetch<LoginResponse>(`${config.public.apiBase}/api/auth/login`, {
       method: 'POST', credentials: 'include', body: form
     })
-    await navigateTo(user.roles.includes('Admin') ? '/users' : '/')
+    await navigateTo(user.roles.includes('Admin') ? '/admin/users' : '/')
   } catch (error: unknown) {
     const response = error as { data?: { message?: string } }
 

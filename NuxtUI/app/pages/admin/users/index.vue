@@ -1,4 +1,9 @@
 <script setup lang="ts">
+
+definePageMeta({
+  middleware: 'admin'
+})
+
 type UserRow = {
   id: string
   name: string
@@ -36,21 +41,7 @@ const tableRows = computed(() => users.value.map(user => ({
 
 onMounted(async () => {
   try {
-    const currentUser = await $fetch<CurrentUser>(`${config.public.apiBase}/api/auth/me`, {
-      credentials: 'include'
-    })
-
-    if (!currentUser.roles.includes('Admin')) {
-      await navigateTo('/')
-      return
-    }
-  } catch {
-    await navigateTo('/')
-    return
-  }
-
-  try {
-    users.value = await $fetch<UserRow[]>(`${config.public.apiBase}/api/admin/users`, {
+    users.value = await $fetch<UserRow[]>('/api/admin/users', {
       credentials: 'include'
     })
   } catch {
