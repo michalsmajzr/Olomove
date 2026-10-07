@@ -30,7 +30,7 @@ const signedInMenuItems = [
 
 const adminMenuItems = [
   { label: 'O nás', to: '/o-nas' },
-  { label: 'Uživatelé', to: '/admin' },
+  { label: 'Uživatelé', to: '/users' },
   { label: 'Plánování kurzů', to: '/admin/courses' },
   { label: 'Kontakty', to: '/kontakty' }
 ]
@@ -73,6 +73,7 @@ async function logout() {
       <!-- Right icons -->
       <div v-if="isLoggedIn" class="hidden items-center gap-4 md:flex">
         <UButton
+          v-if="!isAdmin"
           label="Počet kreditů"
           color="primary"
           size="sm"

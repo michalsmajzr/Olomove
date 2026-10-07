@@ -8,6 +8,7 @@ var builder = WebApplication.CreateBuilder(args);
 // add services to the container.
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
+builder.Services.AddAuthorization();
 
 // configure PostgreSQL database access
 builder.Services.AddDbContext<ApplicationDbContext>(options =>

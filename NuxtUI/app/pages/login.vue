@@ -5,13 +5,15 @@ const loading = ref(false)
 const showPassword = ref(false)
 const form = reactive({ email: '', password: '', rememberMe: false })
 
+type LoginResponse = { roles: string[] }
+
 async function login() {
   loading.value = true
   try {
-    await $fetch(`${config.public.apiBase}/api/auth/login`, {
+    const user = await $fetch<LoginResponse>(`${config.public.apiBase}/api/auth/login`, {
       method: 'POST', credentials: 'include', body: form
     })
-    await navigateTo('/')
+    await navigateTo(user.roles.includes('Admin') ? '/users' : '/')
   } catch (error: unknown) {
     const response = error as { data?: { message?: string } }
 
