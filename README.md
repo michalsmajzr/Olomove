@@ -27,9 +27,9 @@ dotnet clean
 dotnet build
 ```
 
-NuxtUI pro vývoj spusťte v termínálu ve složce NuxtUI:
+NuxtUI pro vývoj spusťte v termínálu ve složce NuxtUI (nejdříve je nutné mít nainstalovaný Node.js):
 ```powershell
-pnpm install    # jen první spuštění
+npm install -g pnpm    # jen první spuštění
 pnpm dev
 ```
 
