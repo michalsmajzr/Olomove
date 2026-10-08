@@ -44,7 +44,7 @@ Heslo: Admin123!
 
 Heslo k databázi pro lokální vývoj je nastavené na: `admin`
 
-Volitelně lze vytvořit vlastní `.env` podle `.env.example` a změnit heslo k databázi nebo údaje výchozího administrátora. Soubor `.env` se neukládá do Gitu.
+Volitelně lze upravit `.env` podle `.env.example` a změnit heslo k databázi nebo údaje výchozího administrátora.
 
 Pro úplné smazání lokální databáze a nové vytvoření dat použijte:
 
