@@ -4,7 +4,7 @@ services:
     environment:
       POSTGRES_DB: olomove
       POSTGRES_USER: olomove
-      POSTGRES_PASSWORD: admin
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-olomove-local-password}
     ports:
       - "5432:5432"
     volumes:
