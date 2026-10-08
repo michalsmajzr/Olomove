@@ -17,15 +17,21 @@ Docker spustí container s PostgreSQL databází.
 Pokud používáte linux můžete odkomentovat zbytek kódu v docker compose a spustit vše v containerech, ale pro vývoj na Windows doporučuji spustit .NET a NuxtUI zvlášť v terminálech.
 
 Dotnet pro vývoj spusťte v termínálu ve složce Olomove:
+```powershell
 dotnet watch run
+```
 
 Případně pokud by bylo potřeba nejdříve:
+```powershell
 dotnet clean
 dotnet build
+```
 
 NuxtUI pro vývoj spusťte v termínálu ve složce NuxtUI:
+```powershell
 pnpm install    # jen první spuštění
 pnpm dev
+```
 
 Aplikace je potom dostupná na [http://localhost:3000](http://localhost:3000).
 
@@ -36,7 +42,7 @@ E-mail: admin@olomove.local
 Heslo: Admin123!
 ```
 
-Heslo k databázi pro lokální vývoj je nastavené na: admin
+Heslo k databázi pro lokální vývoj je nastavené na: `admin`
 
 Volitelně lze vytvořit vlastní `.env` podle `.env.example` a změnit heslo k databázi nebo údaje výchozího administrátora. Soubor `.env` se neukládá do Gitu.
 
