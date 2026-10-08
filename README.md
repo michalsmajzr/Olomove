@@ -29,7 +29,7 @@ dotnet build
 
 Migrace pro EF:
 ```powershell
-dotnet tool install --global dotnet-ef    # jen první spuštění, instalace
+dotnet tool install --global dotnet-ef    # jen první spuštění pro instalaci
 dotnet ef migrations add nazev-migrace    # migrace
 dotnet ef database update    # aktualizace
 ```
