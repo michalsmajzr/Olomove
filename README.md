@@ -21,10 +21,17 @@ Dotnet pro vývoj spusťte v termínálu ve složce Olomove:
 dotnet watch run
 ```
 
-Případně pokud by bylo potřeba nejdříve:
+Při prvním spuštění:
 ```powershell
 dotnet clean
 dotnet build
+```
+
+Migrace pro EF:
+```powershell
+dotnet tool install --global dotnet-ef    # jen první spuštění, instalace
+dotnet ef migrations add nazev-migrace    # migrace
+dotnet ef database update    # aktualizace
 ```
 
 NuxtUI pro vývoj spusťte v termínálu ve složce NuxtUI (nejdříve je nutné mít nainstalovaný Node.js):
