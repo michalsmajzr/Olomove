@@ -7,17 +7,12 @@ public class Course
     public required string Name { get; set; }
 
     public required string CourseType { get; set; }
-    public Guid DanceStyleId { get; set; }
 
-    public DanceStyle? DanceStyle { get; set; }
+    public ICollection<CourseDanceStyle> CourseDanceStyles { get; set; } = new List<CourseDanceStyle>();
 
     public int Level { get; set; }
 
-    public Guid? InstructorId { get; set; }
-
-    public User? Instructor { get; set; }
-
-    public required string Room { get; set; }
+    public ICollection<CourseInstructor> CourseInstructors { get; set; } = new List<CourseInstructor>();
 
     public DateOnly StartDate { get; set; }
 

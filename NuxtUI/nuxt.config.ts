@@ -45,6 +45,7 @@ export default defineNuxtConfig({
         'lucide:log-out',
         'lucide:menu',
         'lucide:user-round-plus',
+        'lucide:save',
         'lucide:x'
       ]
     }

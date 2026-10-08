@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Olomove.Data;
@@ -11,9 +12,11 @@ using Olomove.Data;
 namespace Olomove.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20261008143928_AddDaysEnum")]
+    partial class AddDaysEnum
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -150,6 +153,9 @@ namespace Olomove.Migrations
                     b.Property<DateOnly>("EndDate")
                         .HasColumnType("date");
 
+                    b.Property<Guid?>("InstructorId")
+                        .HasColumnType("uuid");
+
                     b.Property<int>("Level")
                         .HasColumnType("integer");
 
@@ -164,6 +170,8 @@ namespace Olomove.Migrations
                         .HasColumnType("date");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("InstructorId");
 
                     b.ToTable("Courses");
                 });
@@ -181,21 +189,6 @@ namespace Olomove.Migrations
                     b.HasIndex("DanceStyleId");
 
                     b.ToTable("CourseDanceStyles");
-                });
-
-            modelBuilder.Entity("Olomove.Models.CourseInstructor", b =>
-                {
-                    b.Property<Guid>("CourseId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("InstructorId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("CourseId", "InstructorId");
-
-                    b.HasIndex("InstructorId");
-
-                    b.ToTable("CourseInstructors");
                 });
 
             modelBuilder.Entity("Olomove.Models.CourseSession", b =>
@@ -435,6 +428,15 @@ namespace Olomove.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Olomove.Models.Course", b =>
+                {
+                    b.HasOne("Olomove.Models.User", "Instructor")
+                        .WithMany()
+                        .HasForeignKey("InstructorId");
+
+                    b.Navigation("Instructor");
+                });
+
             modelBuilder.Entity("Olomove.Models.CourseDanceStyle", b =>
                 {
                     b.HasOne("Olomove.Models.Course", "Course")
@@ -452,25 +454,6 @@ namespace Olomove.Migrations
                     b.Navigation("Course");
 
                     b.Navigation("DanceStyle");
-                });
-
-            modelBuilder.Entity("Olomove.Models.CourseInstructor", b =>
-                {
-                    b.HasOne("Olomove.Models.Course", "Course")
-                        .WithMany("CourseInstructors")
-                        .HasForeignKey("CourseId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Olomove.Models.User", "Instructor")
-                        .WithMany("CourseInstructors")
-                        .HasForeignKey("InstructorId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Course");
-
-                    b.Navigation("Instructor");
                 });
 
             modelBuilder.Entity("Olomove.Models.CourseSession", b =>
@@ -496,8 +479,6 @@ namespace Olomove.Migrations
                 {
                     b.Navigation("CourseDanceStyles");
 
-                    b.Navigation("CourseInstructors");
-
                     b.Navigation("Sessions");
                 });
 
@@ -509,11 +490,6 @@ namespace Olomove.Migrations
             modelBuilder.Entity("Olomove.Models.Room", b =>
                 {
                     b.Navigation("CourseSessions");
-                });
-
-            modelBuilder.Entity("Olomove.Models.User", b =>
-                {
-                    b.Navigation("CourseInstructors");
                 });
 #pragma warning restore 612, 618
         }

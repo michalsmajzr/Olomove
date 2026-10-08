@@ -3,39 +3,46 @@ definePageMeta({
   middleware: 'admin'
 })
 
+type DanceStyle = {
+  id: string
+  name: string
+  genre: string | null
+  description: string | null
+}
+
 const toast = useToast()
 const isAddingDance = ref(false)
 
-const danceFormData = reactive({
+const form = reactive({
   name: '',
   genre: '',
   description: ''
 })
 
 async function addNewDance() {
-  if (!danceFormData.name.trim()) {
+  if (!form.name.trim()) {
     toast.add({ title: 'Chyba', description: 'Název tance je povinný.', color: 'error' })
     return
   }
 
   isAddingDance.value = true
   try {
-    const created = await $fetch('/api/admin/dancestyles', {
+    const created = await $fetch<DanceStyle>('/api/admin/dancestyles', {
       method: 'POST',
       body: {
-        name: danceFormData.name.trim(),
-        genre: danceFormData.genre.trim() || null,
-        description: danceFormData.description.trim() || null
+        name: form.name.trim(),
+        genre: form.genre.trim() || null,
+        description: form.description.trim() || null
       },
       credentials: 'include'
     })
 
-    toast.add({ title: 'Úspěch', description: `Tanec "${created?.name ?? danceFormData.name}" byl úspěšně přidán.`, color: 'success' })
+    toast.add({ title: 'Úspěch', description: `Tanec "${created?.name ?? form.name}" byl úspěšně přidán.`, color: 'success' })
 
     // reset form
-    danceFormData.name = ''
-    danceFormData.genre = ''
-    danceFormData.description = ''
+    form.name = ''
+    form.genre = ''
+    form.description = ''
 
     // navigate back to listing
     await navigateTo('/admin/dance')
@@ -61,15 +68,15 @@ async function addNewDance() {
         <form class="rounded-xl border border-default bg-default p-6 shadow-sm" @submit.prevent="addNewDance">
           <div class="space-y-6">
             <UFormField label="Název tance" required>
-              <UInput v-model="danceFormData.name" class="w-full" placeholder="např. Waltz, Tango, Samba…" :disabled="isAddingDance" />
+              <UInput v-model="form.name" class="w-full" placeholder="např. Waltz, Tango, Samba…" :disabled="isAddingDance" />
             </UFormField>
 
             <UFormField label="Žánr (volitelné)">
-              <UInput v-model="danceFormData.genre" class="w-full" placeholder="např. Společenský tanec, Latinskoamerický…" :disabled="isAddingDance" />
+              <UInput v-model="form.genre" class="w-full" placeholder="např. Společenský tanec, Latinskoamerický…" :disabled="isAddingDance" />
             </UFormField>
 
             <UFormField label="Popis (volitelné)">
-              <UTextarea v-model="danceFormData.description" class="w-full" placeholder="Krátký popis tance…" :rows="4" :disabled="isAddingDance" />
+              <UTextarea v-model="form.description" class="w-full" placeholder="Krátký popis tance…" :rows="4" :disabled="isAddingDance" />
             </UFormField>
 
             <div class="flex justify-end gap-3 pt-6">

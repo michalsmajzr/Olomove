@@ -1,15 +1,18 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Olomove.Data;
 using Microsoft.EntityFrameworkCore;
 using Olomove.Models;
 
-namespace Olomove.Controllers;
+namespace Olomove.Controllers.admin;
 
 [ApiController]
 [Authorize(Roles = "Admin")]
 [Route("api/admin/users")]
-public class AdminUsersController(UserManager<User> userManager) : ControllerBase
+public class UsersController(
+    UserManager<User> userManager,
+    ApplicationDbContext dbContext) : ControllerBase
 {
     [HttpGet]
     public async Task<IActionResult> GetUsers()
@@ -97,6 +100,22 @@ public class AdminUsersController(UserManager<User> userManager) : ControllerBas
                 await userManager.AddToRolesAsync(user, currentRoles);
             }
             return BadRequest($"Role '{request.Role}' neexistuje nebo se ji nepodařilo přiřadit.");
+        }
+
+        var isInstructor = request.Role.Equals("Lecturer", StringComparison.OrdinalIgnoreCase)
+                           || request.Role.Equals("Teacher", StringComparison.OrdinalIgnoreCase);
+
+        if (!isInstructor)
+        {
+            var courseInstructorLinks = await dbContext.CourseInstructors
+                .Where(link => link.InstructorId == id)
+                .ToListAsync();
+
+            if (courseInstructorLinks.Count > 0)
+            {
+                dbContext.CourseInstructors.RemoveRange(courseInstructorLinks);
+                await dbContext.SaveChangesAsync();
+            }
         }
 
         return NoContent();

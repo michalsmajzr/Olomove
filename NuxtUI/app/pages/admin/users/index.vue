@@ -15,6 +15,7 @@ const users = ref<UserRow[]>([])
 const isLoading = ref(true)
 const errorMessage = ref('')
 const isUpdating = ref<string | null>(null)
+const toast = useToast()
 
 const columns = [
   { accessorKey: 'name', header: 'Jméno' },
@@ -69,8 +70,25 @@ async function updateRole(userId: string, selectedRole: string) {
     if (user) {
       user.role = selectedRole
     }
-  } catch {
-    alert('Nepodařilo se změnit roli.')
+    toast.add({
+      title: 'Úspěch',
+      description: 'Role uživatele byla úspěšně změněna.',
+      color: 'success'
+    })
+  } catch (error: any) {
+    const errors = error?.data?.errors
+    const validationMessage = errors
+      ? Object.values(errors).flat().join(' ')
+      : null
+
+    toast.add({
+      title: 'Chyba',
+      description: validationMessage
+        ?? error?.data?.detail
+        ?? error?.data?.message
+        ?? 'Roli uživatele se nepodařilo změnit.',
+      color: 'error'
+    })
   } finally {
     isUpdating.value = null
   }

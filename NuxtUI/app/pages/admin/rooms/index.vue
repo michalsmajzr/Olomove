@@ -3,43 +3,44 @@ definePageMeta({
   middleware: 'admin'
 })
 
-type DanceRow = {
+type RoomsRow = {
   id: string
   name: string
-  genre?: string | null
+  capacity: number
   description: string | null
 }
 
-const dances = ref<DanceRow[]>([])
+const rooms = ref<RoomsRow[]>([])
 const isLoading = ref(true)
 const errorMessage = ref('')
 
 const columns = [
   { accessorKey: 'name', header: 'Název' },
-  { accessorKey: 'genre', header: 'Žánr' },
+  { accessorKey: 'capacity', header: 'Kapacita' },
   { accessorKey: 'description', header: 'Popis' }
 ]
-const tableRows = computed(() => dances.value)
+
+const tableRows = computed(() => rooms.value)
 
 function handleRowSelect(
-  rowOrEvent: { original?: DanceRow; id?: string } | Event,
-  selectedRow?: { original?: DanceRow; id?: string }
+  rowOrEvent: { original?: RoomsRow; id?: string } | Event,
+  selectedRow?: { original?: RoomsRow; id?: string }
 ) {
   const row = selectedRow ?? (rowOrEvent instanceof Event ? undefined : rowOrEvent)
   const id = row?.original?.id ?? row?.id
 
   if (id) {
-    navigateTo(`/admin/dance/${id}`)
+    navigateTo(`/admin/rooms/${id}`)
   }
 }
 
 onMounted(async () => {
   try {
-    dances.value = await $fetch<DanceRow[]>('/api/admin/dancestyles', {
+    rooms.value = await $fetch<RoomsRow[]>('/api/admin/rooms', {
       credentials: 'include'
     })
   } catch {
-    errorMessage.value = 'Seznam tanců se nepodařilo načíst.'
+    errorMessage.value = 'Seznam sálů se nepodařilo načíst.'
   } finally {
     isLoading.value = false
   }
@@ -55,15 +56,15 @@ onMounted(async () => {
         <div class="flex items-center justify-between mb-8">
           <div>
             <h1 class="text-3xl font-semibold tracking-tight text-highlighted">
-              Správa tanců
+              Správa sálů
             </h1>
             <p class="mt-2 text-base text-muted">
-              Vytváření a editace tanců
+              Vytváření a editace sálů
             </p>
           </div>
           <div>
-            <NuxtLink to="/admin/dance/add">
-              <UButton label="Přidat nový tanec" color="primary" :ui="{ base: 'cursor-pointer' }" />
+            <NuxtLink to="/admin/rooms/add">
+              <UButton label="Přidat nový sál" color="primary" :ui="{ base: 'cursor-pointer' }" />
             </NuxtLink>
           </div>
         </div>
@@ -71,7 +72,7 @@ onMounted(async () => {
         <UCard :ui="{ body: 'p-0 sm:p-0' }">
           <template #header>
             <h2 class="text-lg font-semibold text-highlighted">
-              Seznam tanců
+              Seznam sálů
             </h2>
           </template>
 
@@ -97,7 +98,7 @@ onMounted(async () => {
           </UTable>
 
           <div v-else class="px-6 py-10 text-sm text-muted">
-            {{ errorMessage || 'Načítání stylů…' }}
+            {{ errorMessage || 'Načítání sálů…' }}
           </div>
         </UCard>
       </div>

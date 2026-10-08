@@ -11,4 +11,6 @@ public class User : IdentityUser<Guid>
     public decimal Credit { get; set; } = 0;
 
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+
+    public ICollection<CourseInstructor> CourseInstructors { get; set; } = new List<CourseInstructor>();
 }

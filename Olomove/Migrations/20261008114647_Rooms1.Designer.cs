@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Olomove.Data;
@@ -11,9 +12,11 @@ using Olomove.Data;
 namespace Olomove.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20261008114647_Rooms1")]
+    partial class Rooms1
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -144,11 +147,17 @@ namespace Olomove.Migrations
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<Guid>("DanceStyleId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("Description")
                         .HasColumnType("text");
 
                     b.Property<DateOnly>("EndDate")
                         .HasColumnType("date");
+
+                    b.Property<Guid?>("InstructorId")
+                        .HasColumnType("uuid");
 
                     b.Property<int>("Level")
                         .HasColumnType("integer");
@@ -160,42 +169,25 @@ namespace Olomove.Migrations
                     b.Property<decimal>("Price")
                         .HasColumnType("numeric");
 
+                    b.Property<string>("Room")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("RoomId")
+                        .HasColumnType("uuid");
+
                     b.Property<DateOnly>("StartDate")
                         .HasColumnType("date");
 
                     b.HasKey("Id");
 
-                    b.ToTable("Courses");
-                });
-
-            modelBuilder.Entity("Olomove.Models.CourseDanceStyle", b =>
-                {
-                    b.Property<Guid>("CourseId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("DanceStyleId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("CourseId", "DanceStyleId");
-
                     b.HasIndex("DanceStyleId");
-
-                    b.ToTable("CourseDanceStyles");
-                });
-
-            modelBuilder.Entity("Olomove.Models.CourseInstructor", b =>
-                {
-                    b.Property<Guid>("CourseId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("InstructorId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("CourseId", "InstructorId");
 
                     b.HasIndex("InstructorId");
 
-                    b.ToTable("CourseInstructors");
+                    b.HasIndex("RoomId");
+
+                    b.ToTable("Courses");
                 });
 
             modelBuilder.Entity("Olomove.Models.CourseSession", b =>
@@ -210,22 +202,15 @@ namespace Olomove.Migrations
                     b.Property<TimeOnly>("EndsAt")
                         .HasColumnType("time without time zone");
 
-                    b.Property<Guid>("RoomId")
-                        .HasColumnType("uuid");
-
                     b.Property<TimeOnly>("StartsAt")
                         .HasColumnType("time without time zone");
 
-                    b.Property<string>("Weekday")
-                        .IsRequired()
-                        .HasMaxLength(9)
-                        .HasColumnType("character varying(9)");
+                    b.Property<int>("Weekday")
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
                     b.HasIndex("CourseId");
-
-                    b.HasIndex("RoomId");
 
                     b.ToTable("CourseSessions");
                 });
@@ -435,40 +420,23 @@ namespace Olomove.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("Olomove.Models.CourseDanceStyle", b =>
+            modelBuilder.Entity("Olomove.Models.Course", b =>
                 {
-                    b.HasOne("Olomove.Models.Course", "Course")
-                        .WithMany("CourseDanceStyles")
-                        .HasForeignKey("CourseId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.HasOne("Olomove.Models.DanceStyle", "DanceStyle")
-                        .WithMany("CourseDanceStyles")
+                        .WithMany("Courses")
                         .HasForeignKey("DanceStyleId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Course");
+                    b.HasOne("Olomove.Models.User", "Instructor")
+                        .WithMany()
+                        .HasForeignKey("InstructorId");
+
+                    b.HasOne("Olomove.Models.Room", null)
+                        .WithMany("Courses")
+                        .HasForeignKey("RoomId");
 
                     b.Navigation("DanceStyle");
-                });
-
-            modelBuilder.Entity("Olomove.Models.CourseInstructor", b =>
-                {
-                    b.HasOne("Olomove.Models.Course", "Course")
-                        .WithMany("CourseInstructors")
-                        .HasForeignKey("CourseId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Olomove.Models.User", "Instructor")
-                        .WithMany("CourseInstructors")
-                        .HasForeignKey("InstructorId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Course");
 
                     b.Navigation("Instructor");
                 });
@@ -481,39 +449,22 @@ namespace Olomove.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Olomove.Models.Room", "Room")
-                        .WithMany("CourseSessions")
-                        .HasForeignKey("RoomId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.Navigation("Course");
-
-                    b.Navigation("Room");
                 });
 
             modelBuilder.Entity("Olomove.Models.Course", b =>
                 {
-                    b.Navigation("CourseDanceStyles");
-
-                    b.Navigation("CourseInstructors");
-
                     b.Navigation("Sessions");
                 });
 
             modelBuilder.Entity("Olomove.Models.DanceStyle", b =>
                 {
-                    b.Navigation("CourseDanceStyles");
+                    b.Navigation("Courses");
                 });
 
             modelBuilder.Entity("Olomove.Models.Room", b =>
                 {
-                    b.Navigation("CourseSessions");
-                });
-
-            modelBuilder.Entity("Olomove.Models.User", b =>
-                {
-                    b.Navigation("CourseInstructors");
+                    b.Navigation("Courses");
                 });
 #pragma warning restore 612, 618
         }
