@@ -31,7 +31,7 @@ public class AdminDanceStylesController(ApplicationDbContext dbContext) : Contro
     public IActionResult GetAllDanceStyles()
     {
         var styles = dbContext.DanceStyles
-            .Select(s => new { s.Id, s.Name, s.Description })
+            .Select(s => new { s.Id, s.Name, s.Genre, s.Description })
             .ToList();
 
         return Ok(styles);
