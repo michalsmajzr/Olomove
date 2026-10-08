@@ -2,19 +2,30 @@
 
 ## Spuštění vývojového prostředí v Dockeru
 
-Je potřeba mít spuštěný Docker Desktop. Z kořenové složky projektu spusťte:
+Je potřeba mít spuštěný Docker Desktop nebo termínál a z kořenové složky projektu spustit:
 
 ```powershell
-docker compose up
+docker compose up -d
 ```
 
-Docker spustí tři kontejnery:
+Docker spustí container s PostgreSQL databází.
 
 | Služba | Účel |
 | --- | --- |
 | `postgres` | PostgreSQL databáze |
-| `aspnetapi` | ASP.NET Core API s automatickým restartem při změně C# souborů |
-| `nuxt` | Nuxt UI s automatickým obnovením při změně frontendových souborů |
+
+Pokud používáte linux můžete odkomentovat zbytek kódu v docker compose a spustit vše v containerech, ale pro vývoj na Windows doporučuji spustit .NET a NuxtUI zvlášť v terminálech.
+
+Dotnet pro vývoj spusťte v termínálu ve složce Olomove:
+dotnet watch run
+
+Případně pokud by bylo potřeba nejdříve:
+dotnet clean
+dotnet build
+
+NuxtUI pro vývoj spusťte v termínálu ve složce NuxtUI:
+pnpm install    # jen první spuštění
+pnpm dev
 
 Aplikace je potom dostupná na [http://localhost:3000](http://localhost:3000).
 
@@ -25,13 +36,9 @@ E-mail: admin@olomove.local
 Heslo: Admin123!
 ```
 
+Heslo k databázi pro lokální vývoj je nastavené na: admin
+
 Volitelně lze vytvořit vlastní `.env` podle `.env.example` a změnit heslo k databázi nebo údaje výchozího administrátora. Soubor `.env` se neukládá do Gitu.
-
-Pro spuštění na pozadí použijte:
-
-```powershell
-docker compose up -d
-```
 
 Pro úplné smazání lokální databáze a nové vytvoření dat použijte:
 
@@ -39,17 +46,3 @@ Pro úplné smazání lokální databáze a nové vytvoření dat použijte:
 docker compose down -v
 docker compose up
 ```
-
-Příkaz `down -v` smaže všechna lokální data v databázi včetně vytvořených uživatelských účtů.
-
-## Přihlášení
-
-API používá ASP.NET Core Identity a ukládá účty do PostgreSQL. Nuxt UI formuláře jsou na `/login` a `/signup`.
-
-| Akce | Endpoint |
-| --- | --- |
-| Registrace e-mailem a heslem | `POST /api/auth/register` |
-| Přihlášení e-mailem a heslem | `POST /api/auth/login` |
-| Odhlášení | `POST /api/auth/logout` |
-| Aktuální uživatel | `GET /api/auth/me` |
-Pro nasazení upravte `Cors:AllowedOrigins` a `NUXT_PUBLIC_API_BASE` na produkční adresy.
