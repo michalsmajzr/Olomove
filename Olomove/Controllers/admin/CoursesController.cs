@@ -102,10 +102,12 @@ public class CoursesController(
             {
                 ModelState.AddModelError(nameof(request.CourseInstructors), "Vybraný lektor neexistuje.");
             }
-            else if (!await userManager.IsInRoleAsync(instructor, "Lecturer")
-                     && !await userManager.IsInRoleAsync(instructor, "Teacher"))
+            else if (!await userManager.IsInRoleAsync(instructor, "Instructor")
+                    && !await userManager.IsInRoleAsync(instructor, "Teacher"))
             {
-                ModelState.AddModelError(nameof(request.CourseInstructors), "Vybraný uživatel nemá roli lektora.");
+                ModelState.AddModelError(
+                    nameof(request.CourseInstructors),
+                    "Vybraný uživatel nemá roli lektora.");
             }
             else
             {
@@ -199,10 +201,12 @@ public class CoursesController(
             {
                 ModelState.AddModelError(nameof(request.CourseInstructors), "Vybraný lektor neexistuje.");
             }
-            else if (!await userManager.IsInRoleAsync(instructor, "Lecturer")
-                     && !await userManager.IsInRoleAsync(instructor, "Teacher"))
+            else if (!await userManager.IsInRoleAsync(instructor, "Instructor")
+                    && !await userManager.IsInRoleAsync(instructor, "Teacher"))
             {
-                ModelState.AddModelError(nameof(request.CourseInstructors), "Vybraný uživatel nemá roli lektora.");
+                ModelState.AddModelError(
+                    nameof(request.CourseInstructors),
+                    "Vybraný uživatel nemá roli lektora.");
             }
             else
             {

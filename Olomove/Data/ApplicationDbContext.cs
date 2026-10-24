@@ -17,6 +17,8 @@ public class ApplicationDbContext : IdentityDbContext<User, Role, Guid>
     public DbSet<DanceStyle> DanceStyles => Set<DanceStyle>();
     public DbSet<Room> Rooms => Set<Room>();
 
+    public DbSet<CourseEnrollment> CourseEnrollments => Set<CourseEnrollment>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -63,5 +65,39 @@ public class ApplicationDbContext : IdentityDbContext<User, Role, Guid>
             .WithMany(user => user.CourseInstructors)
             .HasForeignKey(courseInstructor => courseInstructor.InstructorId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        // Jeden uživatel může mít pouze jednu přihlášku na daný kurz.
+        modelBuilder.Entity<CourseEnrollment>()
+            .HasIndex(enrollment => new
+            {
+                enrollment.CourseId,
+                enrollment.UserId
+            })
+            .IsUnique();
+
+        // Vazba přihlášky na kurz.
+        modelBuilder.Entity<CourseEnrollment>()
+            .HasOne(enrollment => enrollment.Course)
+            .WithMany(course => course.CourseEnrollments)
+            .HasForeignKey(enrollment => enrollment.CourseId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Vazba přihlášky na uživatele.
+        modelBuilder.Entity<CourseEnrollment>()
+            .HasOne(enrollment => enrollment.User)
+            .WithMany(user => user.CourseEnrollments)
+            .HasForeignKey(enrollment => enrollment.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Stav přihlášky se v databázi uloží jako text.
+        modelBuilder.Entity<CourseEnrollment>()
+            .Property(enrollment => enrollment.Status)
+            .HasConversion<string>()
+            .HasMaxLength(20);
+
+        // Taneční role.
+        modelBuilder.Entity<CourseEnrollment>()
+            .Property(enrollment => enrollment.DanceRole)
+            .HasMaxLength(20);
     }
 }

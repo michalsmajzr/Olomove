@@ -29,4 +29,7 @@ public class Course
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 
     public ICollection<CourseSession> Sessions { get; set; } = new List<CourseSession>();
+
+    // Uživatelé přihlášení na tento kurz.
+    public ICollection<CourseEnrollment> CourseEnrollments { get; set; } = new List<CourseEnrollment>();
 }
