@@ -18,6 +18,7 @@ public class ApplicationDbContext : IdentityDbContext<User, Role, Guid>
     public DbSet<Room> Rooms => Set<Room>();
 
     public DbSet<CourseEnrollment> CourseEnrollments => Set<CourseEnrollment>();
+    public DbSet<Student> Students => Set<Student>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -99,5 +100,20 @@ public class ApplicationDbContext : IdentityDbContext<User, Role, Guid>
         modelBuilder.Entity<CourseEnrollment>()
             .Property(enrollment => enrollment.DanceRole)
             .HasMaxLength(20);
+
+        // Student patří právě jednomu kurzu.
+        modelBuilder.Entity<Student>()
+            .HasOne(s => s.Course)
+            .WithMany(c => c.Students)
+            .HasForeignKey(s => s.CourseId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Student může mít jednoho přiřazeného učitele.
+        // Učitel je uživatel systému s rolí Teacher.
+        modelBuilder.Entity<Student>()
+            .HasOne(s => s.Teacher)
+            .WithMany()
+            .HasForeignKey(s => s.TeacherId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

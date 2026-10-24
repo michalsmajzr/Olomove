@@ -131,6 +131,12 @@ namespace Olomove.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<bool>("AllowFollowerRegistration")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("AllowLeaderRegistration")
+                        .HasColumnType("boolean");
+
                     b.Property<bool>("BalancedRoles")
                         .HasColumnType("boolean");
 
@@ -151,6 +157,9 @@ namespace Olomove.Migrations
                         .HasColumnType("date");
 
                     b.Property<int>("Level")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("MaxRoleDifference")
                         .HasColumnType("integer");
 
                     b.Property<string>("Name")
@@ -340,6 +349,65 @@ namespace Olomove.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Rooms");
+                });
+
+            modelBuilder.Entity("Olomove.Models.Student", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CourseId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DanceRole")
+                        .HasColumnType("text");
+
+                    b.Property<DateOnly?>("DateOfBirth")
+                        .HasColumnType("date");
+
+                    b.Property<string>("FirstName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("GuardianEmail")
+                        .HasColumnType("text");
+
+                    b.Property<string>("GuardianName")
+                        .HasColumnType("text");
+
+                    b.Property<string>("GuardianPhone")
+                        .HasColumnType("text");
+
+                    b.Property<string>("LastName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Note")
+                        .HasColumnType("text");
+
+                    b.Property<string>("PhoneNumber")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("Rotation")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid?>("TeacherId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CourseId");
+
+                    b.HasIndex("TeacherId");
+
+                    b.ToTable("Students");
                 });
 
             modelBuilder.Entity("Olomove.Models.User", b =>
@@ -548,6 +616,24 @@ namespace Olomove.Migrations
                     b.Navigation("Room");
                 });
 
+            modelBuilder.Entity("Olomove.Models.Student", b =>
+                {
+                    b.HasOne("Olomove.Models.Course", "Course")
+                        .WithMany("Students")
+                        .HasForeignKey("CourseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Olomove.Models.User", "Teacher")
+                        .WithMany()
+                        .HasForeignKey("TeacherId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Course");
+
+                    b.Navigation("Teacher");
+                });
+
             modelBuilder.Entity("Olomove.Models.Course", b =>
                 {
                     b.Navigation("CourseDanceStyles");
@@ -557,6 +643,8 @@ namespace Olomove.Migrations
                     b.Navigation("CourseInstructors");
 
                     b.Navigation("Sessions");
+
+                    b.Navigation("Students");
                 });
 
             modelBuilder.Entity("Olomove.Models.DanceStyle", b =>

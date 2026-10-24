@@ -31,60 +31,66 @@ type CourseDetail = {
 }
 
 
-type CourseStudent = {
-  enrollmentId: string
-  studentId: string
+type CourseParticipant = {
+  enrollmentId: string | null
+  participantId: string
+  personType: 'Student' | 'User'
   firstName: string
   lastName: string
   fullName: string
   email: string | null
   phoneNumber: string | null
   danceRole: string | null
-  rotation: boolean
-  registeredAt: string
+  rotation: boolean | null
+  registeredAt: string | null
+  dateOfBirth: string | null
+  teacherName: string | null
 }
 
-type CourseStudentsResponse = {
+type CourseParticipantsResponse = {
   courseId: string
   courseName: string
   capacity: number
   registeredCount: number
+  studentCount: number
+  totalCount: number
+  occupiedPlaces: number
   availablePlaces: number
-  students: CourseStudent[]
+  isFull: boolean
+  overCapacity: number
+  participants: CourseParticipant[]
 }
 
 const {
-  data: courseStudents,
-  pending: studentsPending,
-  error: studentsError,
-  refresh: refreshStudents
-} = useFetch<CourseStudentsResponse>(
-  () => `/api/lecturer/courses/${courseId.value}/students`,
+  data: courseParticipants,
+  pending: participantsPending,
+  error: participantsError,
+  refresh: refreshParticipants
+} = useFetch<CourseParticipantsResponse>(
+  () => `/api/lecturer/courses/${courseId.value}/participants`,
   {
     credentials: 'include',
     server: false
   }
 )
 
-const studentSearch = ref('')
+const participantSearch = ref('')
 
-const filteredStudents = computed(() => {
-  const search = studentSearch.value
-    .trim()
-    .toLocaleLowerCase('cs-CZ')
+const filteredParticipants = computed(() => {
+  const search = participantSearch.value.trim().toLocaleLowerCase('cs-CZ')
+  const participants = courseParticipants.value?.participants ?? []
 
-  const students = courseStudents.value?.students ?? []
+  if (!search) return participants
 
-  if (!search) return students
-
-  return students.filter(student =>
+  return participants.filter(participant =>
     [
-      student.fullName,
-      student.email ?? '',
-      student.danceRole ?? ''
-    ].some(value =>
-      value.toLocaleLowerCase('cs-CZ').includes(search)
-    )
+      participant.fullName,
+      participant.email ?? '',
+      participant.phoneNumber ?? '',
+      participant.teacherName ?? '',
+      participant.personType === 'Student' ? 'student' : 'uživatel',
+      participant.danceRole ?? ''
+    ].some(value => value.toLocaleLowerCase('cs-CZ').includes(search))
   )
 })
 
@@ -198,7 +204,9 @@ const courseStatus = computed(() => {
 </script>
 
 <template>
-  <div>
+  <NuxtPage v-if="route.params.participantId" />
+
+  <div v-else>
     <AppNavbar />
 
     <main class="min-h-screen bg-muted/30">
@@ -458,268 +466,125 @@ const courseStatus = computed(() => {
               </UCard>
 
               
-                <!-- Studenti kurzu -->
-                <UCard>
+                              <!-- Účastníci kurzu -->
+              <UCard>
                 <template #header>
-                    <div class="flex flex-wrap items-center justify-between gap-3">
+                  <div class="flex flex-wrap items-center justify-between gap-3">
                     <div class="flex items-center gap-3">
-                        <UIcon
-                        name="i-lucide-users"
-                        class="size-5 text-orange-600"
-                        />
-
-                        <h2 class="text-lg font-semibold text-highlighted">
-                        Studenti kurzu
-                        </h2>
+                      <UIcon name="i-lucide-users" class="size-5 text-orange-600" />
+                      <h2 class="text-lg font-semibold text-highlighted">Účastníci kurzu</h2>
                     </div>
-
-                    <UBadge
-                        v-if="courseStudents"
-                        color="primary"
-                        variant="subtle"
-                    >
-                        {{ courseStudents.registeredCount }}
-                        /
-                        {{ courseStudents.capacity }}
+                    <UBadge v-if="courseParticipants" color="primary" variant="subtle">
+                      {{ courseParticipants.totalCount }} / {{ courseParticipants.capacity }}
                     </UBadge>
-                    </div>
+                  </div>
                 </template>
 
-                <!-- Načítání -->
-                <div
-                    v-if="studentsPending"
-                    class="py-12 text-center"
-                >
-                    <UIcon
-                    name="i-lucide-loader-circle"
-                    class="size-8 animate-spin text-orange-500"
-                    />
-
-                    <p class="mt-3 text-sm text-muted">
-                    Načítání studentů…
-                    </p>
+                <div v-if="participantsPending" class="py-12 text-center">
+                  <UIcon name="i-lucide-loader-circle" class="size-8 animate-spin text-orange-500" />
+                  <p class="mt-3 text-sm text-muted">Načítání účastníků…</p>
                 </div>
 
-                <!-- Chyba -->
-                <div
-                    v-else-if="studentsError"
-                    class="py-8 text-center"
-                >
-                    <UIcon
-                    name="i-lucide-circle-alert"
-                    class="mx-auto mb-3 size-9 text-red-500"
-                    />
-
-                    <p class="mb-4 text-sm text-muted">
-                    Nepodařilo se načíst seznam studentů.
-                    </p>
-
-                    <UButton
-                    color="error"
-                    variant="outline"
-                    @click="refreshStudents()"
-                    >
+                <div v-else-if="participantsError" class="py-8 text-center">
+                  <p class="mb-4 text-sm text-muted">Nepodařilo se načíst účastníky.</p>
+                  <UButton color="error" variant="outline" @click="refreshParticipants()">
                     Zkusit znovu
-                    </UButton>
+                  </UButton>
                 </div>
 
-                <template v-else-if="courseStudents">
-
-                    <!-- Statistiky -->
-                    <div class="mb-6 grid gap-4 sm:grid-cols-3">
+                <template v-else-if="courseParticipants">
+                  <div class="mb-6 grid gap-4 sm:grid-cols-3">
                     <div class="rounded-xl bg-muted/40 p-4">
-                        <p class="text-sm text-muted">
-                        Přihlášení studenti
-                        </p>
-
-                        <p class="mt-2 text-2xl font-semibold text-highlighted">
-                        {{ courseStudents.registeredCount }}
-                        </p>
+                      <p class="text-sm text-muted">Registrovaní uživatelé</p>
+                      <p class="mt-2 text-2xl font-semibold text-highlighted">{{ courseParticipants.registeredCount }}</p>
                     </div>
-
                     <div class="rounded-xl bg-muted/40 p-4">
-                        <p class="text-sm text-muted">
-                        Volná místa
-                        </p>
-
-                        <p class="mt-2 text-2xl font-semibold text-highlighted">
-                        {{ courseStudents.availablePlaces }}
-                        </p>
+                      <p class="text-sm text-muted">Studenti</p>
+                      <p class="mt-2 text-2xl font-semibold text-highlighted">{{ courseParticipants.studentCount }}</p>
                     </div>
-
                     <div class="rounded-xl bg-muted/40 p-4">
-                        <p class="text-sm text-muted">
-                        Kapacita kurzu
-                        </p>
-
-                        <p class="mt-2 text-2xl font-semibold text-highlighted">
-                        {{ courseStudents.capacity }}
-                        </p>
+                      <p class="text-sm text-muted">Volná místa</p>
+                      <p class="mt-2 text-2xl font-semibold text-highlighted">{{ courseParticipants.availablePlaces }}</p>
                     </div>
-                    </div>
+                  </div>
 
-                    <!-- Vyhledávání -->
-                    <div class="mb-5">
-                    <UInput
-                        v-model="studentSearch"
-                        icon="i-lucide-search"
-                        placeholder="Hledat studenta…"
-                        class="w-full sm:max-w-sm"
-                    />
-                    </div>
+                  <p v-if="courseParticipants.overCapacity > 0" class="mb-4 text-sm text-red-600">
+                    Kapacita překročena o {{ courseParticipants.overCapacity }} osob.
+                  </p>
 
-                    <!-- Žádní studenti -->
-                    <div
-                    v-if="!courseStudents.students.length"
-                    class="py-10 text-center"
-                    >
-                    <UIcon
-                        name="i-lucide-user-round-x"
-                        class="mx-auto mb-3 size-10 text-muted"
-                    />
+                  <UInput
+                    v-model="participantSearch"
+                    icon="i-lucide-search"
+                    placeholder="Hledat účastníka…"
+                    class="mb-5 w-full sm:max-w-sm"
+                  />
 
-                    <p class="font-medium text-highlighted">
-                        Zatím žádní přihlášení studenti
-                    </p>
-
-                    <p class="mt-2 text-sm text-muted">
-                        Jakmile se někdo přihlásí na kurz,
-                        zobrazí se zde.
-                    </p>
-                    </div>
-
-                    <!-- Vyhledávání bez výsledků -->
-                    <div
-                    v-else-if="!filteredStudents.length"
-                    class="py-10 text-center text-sm text-muted"
-                    >
-                    Žádný student neodpovídá hledání.
-                    </div>
-
-                    <!-- Tabulka studentů -->
-                    <div v-else class="overflow-x-auto">
+                  <div v-if="!courseParticipants.participants.length" class="py-10 text-center text-muted">
+                    Kurz zatím nemá žádné účastníky.
+                  </div>
+                  <div v-else-if="!filteredParticipants.length" class="py-10 text-center text-muted">
+                    Žádný účastník neodpovídá hledání.
+                  </div>
+                  <div v-else class="overflow-x-auto">
                     <table class="w-full min-w-[650px] text-left text-sm">
-                        <thead>
+                      <thead>
                         <tr class="border-b border-default text-muted">
-                            <th class="px-3 py-3 font-semibold">
-                            Student
-                            </th>
-
-                            <th class="px-3 py-3 font-semibold">
-                            Taneční role
-                            </th>
-
-                            <th class="px-3 py-3 font-semibold">
-                            Rotace
-                            </th>
-
-                            <th class="px-3 py-3 font-semibold">
-                            Kontakt
-                            </th>
-
-                            <th class="px-3 py-3 font-semibold">
-                            Akce
-                            </th>
+                          <th class="px-3 py-3 font-semibold">Jméno</th>
+                          <th class="px-3 py-3 font-semibold">Typ</th>
+                          <th class="px-3 py-3 font-semibold">Taneční role</th>
+                          <th class="px-3 py-3 font-semibold">Rotace / učitel</th>
+                          <th class="px-3 py-3 font-semibold">Kontakt</th>
+                          <th class="px-3 py-3 font-semibold">Akce</th>
                         </tr>
-                        </thead>
-
-                        <tbody>
+                      </thead>
+                      <tbody>
                         <tr
-                            v-for="student in filteredStudents"
-                            :key="student.enrollmentId"
-                            class="border-b border-default last:border-b-0"
+                          v-for="participant in filteredParticipants"
+                          :key="`${participant.personType}-${participant.participantId}`"
+                          class="border-b border-default last:border-b-0"
                         >
-                            <!-- Student -->
-                            <td class="px-3 py-4">
-                            <div class="flex items-center gap-3">
-                                <div
-                                class="flex size-9 shrink-0 items-center justify-center rounded-full bg-orange-100"
-                                >
-                                <UIcon
-                                    name="i-lucide-user-round"
-                                    class="size-5 text-orange-600"
-                                />
-                                </div>
-
-                                <span class="font-medium text-highlighted">
-                                {{ student.fullName }}
-                                </span>
-                            </div>
-                            </td>
-
-                            <!-- Role -->
-                            <td class="px-3 py-4">
-                            <UBadge
-                                color="neutral"
-                                variant="subtle"
-                            >
-                                {{ formatDanceRole(student.danceRole) }}
+                          <td class="px-3 py-4 font-medium text-highlighted">{{ participant.fullName }}</td>
+                          <td class="px-3 py-4">
+                            <UBadge :color="participant.personType === 'Student' ? 'primary' : 'neutral'" variant="subtle">
+                              {{ participant.personType === 'Student' ? 'Student' : 'Uživatel' }}
                             </UBadge>
-                            </td>
-
-                            <!-- Rotace -->
-                            <td class="px-3 py-4">
-                            <div class="flex items-center gap-2">
-                                <UIcon
-                                :name="student.rotation
-                                    ? 'i-lucide-circle-check'
-                                    : 'i-lucide-circle-minus'"
-                                :class="student.rotation
-                                    ? 'text-green-600'
-                                    : 'text-muted'"
-                                class="size-4"
-                                />
-
-                                <span>
-                                {{ student.rotation ? 'Ano' : 'Ne' }}
-                                </span>
-                            </div>
-                            </td>
-
-                            <!-- Kontakt -->
-                            <td class="px-3 py-4">
-                            <a
-                                v-if="student.email"
-                                :href="`mailto:${student.email}`"
-                                class="text-orange-600 hover:underline"
-                            >
-                                {{ student.email }}
+                          </td>
+                          <td class="px-3 py-4">
+                            {{ participant.personType === 'User' ? formatDanceRole(participant.danceRole) : '—' }}
+                          </td>
+                          <td class="px-3 py-4">
+                            <template v-if="participant.personType === 'User'">
+                              {{ participant.rotation ? 'Rotace: Ano' : 'Rotace: Ne' }}
+                            </template>
+                            <template v-else>{{ participant.teacherName || 'Učitel neuveden' }}</template>
+                          </td>
+                          <td class="px-3 py-4">
+                            <a v-if="participant.email" :href="`mailto:${participant.email}`" class="text-orange-600 hover:underline">
+                              {{ participant.email }}
                             </a>
-
-                            <span v-else class="text-muted">
-                                Neuvedeno
-                            </span>
-                            </td>
-
-                            <!-- Detail studenta -->
-                            <td class="px-3 py-4">
-                                <UButton
-                                    :to="`/lecturer/courses/${courseId}/students/${student.studentId}`"
-                                    icon="i-lucide-arrow-up-right"
-                                    color="primary"
-                                    variant="outline"
-                                    size="sm"
-                                >
-                                    Detail
-                                </UButton>
-                            </td>
+                            <a v-else-if="participant.phoneNumber" :href="`tel:${participant.phoneNumber}`" class="text-orange-600 hover:underline">
+                              {{ participant.phoneNumber }}
+                            </a>
+                            <span v-else class="text-muted">Neuvedeno</span>
+                          </td>
+                          <td class="px-3 py-4">
+                            <UButton
+                              :to="`/lecturer/courses/${courseId}/participants/${participant.participantId}?type=${participant.personType}`"
+                              icon="i-lucide-arrow-up-right"
+                              color="primary"
+                              variant="outline"
+                              size="sm"
+                            >Detail</UButton>
+                          </td>
                         </tr>
-                        </tbody>
+                      </tbody>
                     </table>
-                    </div>
-
-                    <!-- Počet výsledků -->
-                    <p
-                    v-if="courseStudents.students.length"
-                    class="mt-4 text-right text-xs text-muted"
-                    >
-                    Zobrazeno {{ filteredStudents.length }}
-                    z {{ courseStudents.registeredCount }} studentů
-                    </p>
-
+                  </div>
+                  <p v-if="courseParticipants.participants.length" class="mt-4 text-right text-xs text-muted">
+                    Zobrazeno {{ filteredParticipants.length }} z {{ courseParticipants.totalCount }} účastníků
+                  </p>
                 </template>
-                </UCard>
-
+              </UCard>
 
             </div>
 
