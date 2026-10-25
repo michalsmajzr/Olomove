@@ -82,8 +82,13 @@ onMounted(async () => {
 
     instructors.value = Array.isArray(availableUsers)
       ? availableUsers
-          .filter(user => user.role === 'Lecturer' || user.role === 'Teacher')
-          .map(user => ({ label: user.name, value: user.id }))
+          .filter(user =>
+            ['Instructor', 'Teacher'].includes(user.role)
+          )
+          .map(user => ({
+            label: user.name,
+            value: user.id
+          }))
       : []
   } catch (error) {
     danceStyles.value = []

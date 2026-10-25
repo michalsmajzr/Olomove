@@ -26,6 +26,9 @@ watch(() => route.path, () => {
 
 const isLoggedIn = computed(() => currentUser.value !== null)
 const isAdmin = computed(() => currentUser.value?.roles.includes('Admin') ?? false)
+const isInstructor = computed(() =>
+  currentUser.value?.roles.includes('Instructor') ?? false
+)
 
 const guestMenuItems = [
   { label: 'Úvod', to: '/' },
@@ -48,8 +51,17 @@ const adminMenuItems = [
   { label: 'Kontakty', to: '/kontakty' }
 ]
 
+const instructorMenuItems = [
+  { label: 'Přehled', to: '/lecturer' },
+  { label: 'Moje lekce', to: '/lecturer/lessons' },
+  { label: 'Moje kurzy', to: '/lecturer/courses' },
+  { label: 'Naše tance', to: '/nase-tance' },
+  { label: 'Kontakty', to: '/kontakty' }
+]
+
 const computedRole = computed(() => {
   if (isAdmin.value) return adminMenuItems
+  if (isInstructor.value) return instructorMenuItems
   if (isLoggedIn.value) return signedInMenuItems
   return guestMenuItems
 })
@@ -86,14 +98,14 @@ async function logout() {
       <div v-if="isAuthLoaded" class="hidden items-center gap-4 md:flex">
         <template v-if="isLoggedIn">
           <UButton
-            v-if="!isAdmin"
+            v-if="!isAdmin && !isInstructor"
             label="Počet kreditů"
             color="primary"
             size="sm"
             class="cursor-pointer"
           />
           <UButton
-            to="/profile"
+            :to="isInstructor ? '/lecturer/profile' : '/profile'"
             icon="i-lucide-circle-user-round"
             aria-label="Můj profil"
             variant="ghost"

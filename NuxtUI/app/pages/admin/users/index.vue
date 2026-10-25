@@ -26,15 +26,15 @@ const columns = [
 
 const roleLabels: Record<string, string> = {
   Admin: 'Administrátor',
-  Lecturer: 'Lektor',
+  Instructor: 'Lektor',
   Teacher: 'Učitel',
   User: 'Klient'
 }
 
 const roleOptions = [
-  { label: 'Uživatel', value: 'User' },
-  { label: 'Lektor', value: 'Lecturer' },
-  { label: 'Učitel', value: 'Teacher' }
+  { label: 'Administrátor', value: 'Admin' },
+  { label: 'Lektor', value: 'Instructor' },
+  { label: 'Uživatel', value: 'User' }
 ]
 
 const tableRows = computed(() => users.value.map(user => ({
