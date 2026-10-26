@@ -186,10 +186,6 @@ function isToday(date: string | null): boolean {
 
         <!-- Nadpis -->
         <div class="mb-8">
-          <p class="mb-2 text-sm font-medium text-orange-600">
-            OloMove · Lektorská sekce
-          </p>
-
           <h1 class="text-3xl font-semibold text-highlighted">
             Moje lekce
           </h1>
@@ -210,6 +206,7 @@ function isToday(date: string | null): boolean {
               variant="outline"
               aria-label="Předchozí měsíc"
               @click="changeMonth(-1)"
+              :ui="{ base: 'cursor-pointer' }"
             />
 
             <h2
@@ -224,6 +221,7 @@ function isToday(date: string | null): boolean {
               variant="outline"
               aria-label="Následující měsíc"
               @click="changeMonth(1)"
+              :ui="{ base: 'cursor-pointer' }"
             />
 
             <UButton
@@ -241,6 +239,7 @@ function isToday(date: string | null): boolean {
               :color="viewMode === 'calendar' ? 'primary' : 'neutral'"
               :variant="viewMode === 'calendar' ? 'solid' : 'outline'"
               @click="viewMode = 'calendar'"
+              :ui="{ base: 'cursor-pointer' }"
             >
               Kalendář
             </UButton>
@@ -250,6 +249,7 @@ function isToday(date: string | null): boolean {
               :color="viewMode === 'list' ? 'primary' : 'neutral'"
               :variant="viewMode === 'list' ? 'solid' : 'outline'"
               @click="viewMode = 'list'"
+              :ui="{ base: 'cursor-pointer' }"
             >
               Seznam
             </UButton>

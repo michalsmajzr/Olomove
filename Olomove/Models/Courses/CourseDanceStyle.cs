@@ -1,4 +1,4 @@
-namespace Olomove.Models;
+namespace Olomove.Models.Courses;
 
 public class CourseDanceStyle
 {

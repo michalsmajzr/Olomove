@@ -112,7 +112,7 @@ onMounted(async () => {
 
     instructors.value = Array.isArray(availableUsers)
       ? availableUsers
-          .filter(user => user.role === 'Lecturer' || user.role === 'Teacher')
+          .filter(user => user.role === 'Instructor' || user.role === 'Teacher')
           .map(user => ({ label: user.name, value: user.id }))
       : []
 

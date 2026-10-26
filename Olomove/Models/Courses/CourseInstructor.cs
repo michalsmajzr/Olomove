@@ -1,4 +1,6 @@
-namespace Olomove.Models;
+using Olomove.Models.Users;
+
+namespace Olomove.Models.Courses;
 
 public class CourseInstructor
 {

@@ -1,8 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Olomove.Data;
-using Olomove.Models;
 using Microsoft.AspNetCore.Identity;
 using System.Text.Json.Serialization;
+using Olomove.Models.Users;
 
 var builder = WebApplication.CreateBuilder(args);
 

@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Identity;
+using Olomove.Models.Courses;
 
-namespace Olomove.Models;
+namespace Olomove.Models.Users;
 
 public class User : IdentityUser<Guid>
 {

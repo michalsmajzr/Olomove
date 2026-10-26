@@ -204,10 +204,6 @@ async function saveProfile() {
 
         <!-- Hlavička stránky -->
         <div class="mb-8">
-          <p class="mb-2 text-sm font-medium text-orange-600">
-            OloMove · Lektorská sekce
-          </p>
-
           <h1 class="text-3xl font-semibold text-highlighted">
             Můj profil
           </h1>
@@ -301,6 +297,7 @@ async function saveProfile() {
                 color="primary"
                 variant="outline"
                 @click="startEditing"
+                :ui="{ base: 'cursor-pointer' }"
               >
                 Upravit profil
               </UButton>
@@ -556,49 +553,6 @@ async function saveProfile() {
                       </UBadge>
                     </div>
                   </div>
-
-                </div>
-              </UCard>
-
-              <!-- Rychlé odkazy -->
-              <UCard>
-                <template #header>
-                  <h2 class="text-lg font-semibold text-highlighted">
-                    Rychlé odkazy
-                  </h2>
-                </template>
-
-                <div class="space-y-3">
-
-                  <UButton
-                    to="/lecturer"
-                    icon="i-lucide-layout-dashboard"
-                    color="primary"
-                    variant="outline"
-                    block
-                  >
-                    Můj přehled
-                  </UButton>
-
-                  <UButton
-                    to="/lecturer/lessons"
-                    icon="i-lucide-calendar-days"
-                    color="neutral"
-                    variant="outline"
-                    block
-                  >
-                    Moje lekce
-                  </UButton>
-
-                  <UButton
-                    to="/lecturer/courses"
-                    icon="i-lucide-book-open"
-                    color="neutral"
-                    variant="outline"
-                    block
-                  >
-                    Moje kurzy
-                  </UButton>
 
                 </div>
               </UCard>

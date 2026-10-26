@@ -19,7 +19,15 @@ const route = useRoute()
 const toast = useToast()
 
 function formatDate(date: string) {
-  const [year, month, day] = date.split('-').map(Number)
+  const parts = date.split('-')
+  if (parts.length !== 3) return date
+
+  const year = Number(parts[0] ?? NaN)
+  const month = Number(parts[1] ?? NaN)
+  const day = Number(parts[2] ?? NaN)
+
+  if ([year, month, day].some(Number.isNaN)) return date
+
   return new Intl.DateTimeFormat('cs-CZ').format(new Date(year, month - 1, day))
 }
 

@@ -81,10 +81,6 @@ const otherCourses = computed(() =>
 
         <!-- Nadpis -->
         <div class="mb-8">
-          <p class="mb-2 text-sm font-medium text-orange-600">
-            OloMove · Lektorská sekce
-          </p>
-
           <h1 class="text-3xl font-semibold text-highlighted">
             Moje kurzy
           </h1>

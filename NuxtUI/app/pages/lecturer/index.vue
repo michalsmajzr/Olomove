@@ -45,10 +45,6 @@ const formatTime = (time: string) => time.slice(0, 5)
       <div class="mx-auto max-w-7xl px-6 py-10">
 
         <div class="mb-8">
-          <p class="mb-2 text-sm font-medium text-orange-600">
-            OloMove · Lektorská sekce
-          </p>
-
           <h1 class="text-3xl font-semibold text-highlighted">
             Přehled lektora
           </h1>

@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Olomove.Constants;
-using Olomove.Models;
+using Olomove.Models.Users;
 
 namespace Olomove.Data;
 

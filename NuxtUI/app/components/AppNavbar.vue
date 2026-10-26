@@ -55,8 +55,6 @@ const instructorMenuItems = [
   { label: 'Přehled', to: '/lecturer' },
   { label: 'Moje lekce', to: '/lecturer/lessons' },
   { label: 'Moje kurzy', to: '/lecturer/courses' },
-  { label: 'Naše tance', to: '/nase-tance' },
-  { label: 'Kontakty', to: '/kontakty' }
 ]
 
 const computedRole = computed(() => {

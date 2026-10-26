@@ -3,9 +3,9 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Olomove.Data;
 using Microsoft.EntityFrameworkCore;
-using Olomove.Models;
+using Olomove.Models.Users;
 
-namespace Olomove.Controllers.admin;
+namespace Olomove.Controllers.Admin;
 
 [ApiController]
 [Authorize(Roles = "Admin")]
@@ -65,6 +65,12 @@ public class UsersController(
             return BadRequest("Roli Administrátor nelze takto přiřadit.");
         }
 
+        if (!request.Role.Equals("Instructor", StringComparison.OrdinalIgnoreCase)
+            && !request.Role.Equals("User", StringComparison.OrdinalIgnoreCase))
+        {
+            return BadRequest("Povolené role jsou pouze 'Instructor' a 'User'.");
+        }
+
         var currentUserId = userManager.GetUserId(User);
         if (currentUserId == id.ToString())
         {
@@ -102,7 +108,7 @@ public class UsersController(
             return BadRequest($"Role '{request.Role}' neexistuje nebo se ji nepodařilo přiřadit.");
         }
 
-        var isInstructor = request.Role.Equals("Lecturer", StringComparison.OrdinalIgnoreCase)
+        var isInstructor = request.Role.Equals("Instructor", StringComparison.OrdinalIgnoreCase)
                            || request.Role.Equals("Teacher", StringComparison.OrdinalIgnoreCase);
 
         if (!isInstructor)

@@ -3,7 +3,7 @@
  */
 export const useRoleCheck = () => {
   const config = useRuntimeConfig()
-  const currentUser = ref<{ id: string; roles: string[] } | null>(null)
+  const currentUser = ref<{ id: string, roles: string[] } | null>(null)
   const isLoading = ref(true)
   const error = ref<string | null>(null)
 
@@ -14,14 +14,14 @@ export const useRoleCheck = () => {
     try {
       isLoading.value = true
       error.value = null
-      currentUser.value = await $fetch<{ id: string; roles: string[] }>(
+      currentUser.value = await $fetch<{ id: string, roles: string[] }>(
         `${config.public.apiBase}/api/auth/me`,
         {
           credentials: 'include'
         }
       )
     } catch (err) {
-      error.value = 'failed to fetch user data'
+      error.value = `failed to fetch user data ${err}`
       currentUser.value = null
     } finally {
       isLoading.value = false

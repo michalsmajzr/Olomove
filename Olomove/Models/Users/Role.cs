@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Identity;
 
-namespace Olomove.Models;
+namespace Olomove.Models.Users;
 
 public class Role : IdentityRole<Guid>
 {

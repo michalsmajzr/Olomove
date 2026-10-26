@@ -4,9 +4,9 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Olomove.Data;
-using Olomove.Models;
+using Olomove.Models.Users;
 
-namespace Olomove.Controllers.lecturer;
+namespace Olomove.Controllers.Lecturer;
 
 [ApiController]
 [Authorize(Roles = "Instructor,Teacher,Admin")]

@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Olomove.Contracts.Auth;
-using Olomove.Models;
+using Olomove.Models.Users;
 
 namespace Olomove.Controllers;
 

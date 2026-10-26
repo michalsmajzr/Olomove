@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
-using Olomove.Models;
+using Olomove.Models.Users;
+using Olomove.Models.Courses;
 
 namespace Olomove.Data;
 

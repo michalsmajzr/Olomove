@@ -1,5 +1,6 @@
+using Olomove.Models.Courses;
 
-namespace Olomove.Models;
+namespace Olomove.Models.Users;
 
 public class Student
 {

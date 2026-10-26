@@ -30,7 +30,6 @@ type CourseDetail = {
   sessions: CourseSession[]
 }
 
-
 type CourseParticipant = {
   enrollmentId: string | null
   participantId: string
@@ -104,8 +103,6 @@ function formatDanceRole(role: string | null): string {
       return 'Neuvedeno'
   }
 }
-
-
 
 const {
   data: course,
@@ -258,10 +255,6 @@ const courseStatus = computed(() => {
 
           <!-- Hlavička -->
           <div class="mb-8">
-            <p class="mb-2 text-sm font-medium text-orange-600">
-              OloMove · Lektorská sekce
-            </p>
-
             <div class="flex flex-wrap items-center gap-4">
               <h1 class="text-3xl font-semibold text-highlighted">
                 {{ course.name }}
@@ -466,7 +459,7 @@ const courseStatus = computed(() => {
               </UCard>
 
               
-                              <!-- Účastníci kurzu -->
+                <!-- Účastníci kurzu -->
               <UCard>
                 <template #header>
                   <div class="flex flex-wrap items-center justify-between gap-3">
@@ -653,48 +646,6 @@ const courseStatus = computed(() => {
                   </div>
                 </div>
               </UCard>
-
-              <!-- Rychlá navigace -->
-              <UCard>
-                <template #header>
-                  <h2 class="text-lg font-semibold text-highlighted">
-                    Rychlé odkazy
-                  </h2>
-                </template>
-
-                <div class="space-y-3">
-                  <UButton
-                    to="/lecturer/lessons"
-                    icon="i-lucide-calendar-days"
-                    color="primary"
-                    variant="outline"
-                    block
-                  >
-                    Kalendář lekcí
-                  </UButton>
-
-                  <UButton
-                    to="/lecturer/courses"
-                    icon="i-lucide-book-open"
-                    color="neutral"
-                    variant="outline"
-                    block
-                  >
-                    Všechny moje kurzy
-                  </UButton>
-
-                  <UButton
-                    to="/lecturer"
-                    icon="i-lucide-layout-dashboard"
-                    color="neutral"
-                    variant="ghost"
-                    block
-                  >
-                    Zpět na přehled
-                  </UButton>
-                </div>
-              </UCard>
-
             </div>
 
           </div>
