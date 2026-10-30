@@ -6,27 +6,31 @@ public class CourseEnrollment
 {
     public Guid Id { get; set; } = Guid.NewGuid();
 
-    // Kurz, na který je uživatel přihlášený
+    // Kurz, na který se uživatel přihlašuje.
     public Guid CourseId { get; set; }
 
     public Course Course { get; set; } = null!;
 
-    // Přihlášený uživatel
+    // Uživatel, který vytvořil a zaplatil přihlášku.
     public Guid UserId { get; set; }
 
     public User User { get; set; } = null!;
 
-    // Taneční role: Leader / Follower
+    // Taneční role: Leader / Follower.
     public string? DanceRole { get; set; }
 
-    // Zda chce student během výuky střídat partnery
+    // Zda chce během lekcí střídat taneční partnery.
     public bool Rotation { get; set; } = true;
 
-    // Stav přihlášky
+    // Stav přihlášky.
     public CourseEnrollmentStatus Status { get; set; }
         = CourseEnrollmentStatus.Registered;
 
-    // Datum přihlášení
+    // Počet skutečně zaplacených kreditů.
+    // Obsahuje i cenu partnera, pokud byl přihlášen.
+    public decimal PaidCredits { get; set; } = 0m;
+
+    // Datum vytvoření přihlášky.
     public DateTimeOffset CreatedAt { get; set; }
         = DateTimeOffset.UtcNow;
 }

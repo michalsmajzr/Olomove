@@ -21,6 +21,9 @@ public class ApplicationDbContext : IdentityDbContext<User, Role, Guid>
     public DbSet<CourseEnrollment> CourseEnrollments => Set<CourseEnrollment>();
     public DbSet<Student> Students => Set<Student>();
 
+    public DbSet<SavedPartner> SavedPartners => Set<SavedPartner>();
+    public DbSet<CourseEnrollmentPartner> CourseEnrollmentPartners => Set<CourseEnrollmentPartner>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -116,5 +119,11 @@ public class ApplicationDbContext : IdentityDbContext<User, Role, Guid>
             .WithMany()
             .HasForeignKey(s => s.TeacherId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.ApplyConfiguration(
+            new Olomove.Data.Configurations.SavedPartnerConfiguration());
+
+        modelBuilder.ApplyConfiguration(
+            new Olomove.Data.Configurations.CourseEnrollmentPartnerConfiguration());
     }
 }
