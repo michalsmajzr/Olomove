@@ -24,7 +24,7 @@ async function register() {
         password: form.password
       }
     })
-    await navigateTo('/')
+    await navigateTo('/nase-tance')
   } catch (error: unknown) {
     const response = error as {
       data?: {

@@ -148,36 +148,33 @@ public class LecturerCoursesController(
     public async Task<IActionResult> GetCourseParticipants(Guid id)
     {
         var userId = userManager.GetUserId(User);
-
         if (!Guid.TryParse(userId, out var lecturerId))
             return Unauthorized();
 
         // Lektor smí vidět pouze své kurzy.
         var course = await context.Courses
             .AsNoTracking()
-            .Where(c =>
-                c.Id == id &&
-                c.CourseInstructors.Any(ci =>
-                    ci.InstructorId == lecturerId))
+            .Where(c => c.Id == id &&
+                c.CourseInstructors.Any(ci => ci.InstructorId == lecturerId))
             .Select(c => new
             {
                 c.Id,
                 c.Name,
-                c.Capacity
+                c.Capacity,
+                c.BalancedRoles,
+                c.AllowLeaderRegistration,
+                c.AllowFollowerRegistration
             })
             .FirstOrDefaultAsync();
 
         if (course == null)
             return NotFound("Kurz nebyl nalezen nebo k němu nemáte přístup.");
 
-        // Registrovaní uživatelé.
+        // 1) Účastníci, kteří mají vlastní účet.
         var enrollments = await context.CourseEnrollments
             .AsNoTracking()
-            .Where(e =>
-                e.CourseId == id &&
+            .Where(e => e.CourseId == id &&
                 e.Status == CourseEnrollmentStatus.Registered)
-            .OrderBy(e => e.User.LastName)
-            .ThenBy(e => e.User.FirstName)
             .Select(e => new
             {
                 EnrollmentId = (Guid?)e.Id,
@@ -192,16 +189,46 @@ public class LecturerCoursesController(
                 Rotation = (bool?)e.Rotation,
                 RegisteredAt = (DateTimeOffset?)e.CreatedAt,
                 DateOfBirth = (DateOnly?)null,
-                TeacherName = (string?)null
+                TeacherName = (string?)null,
+                // Osoba přihlášená spolu s uživatelem (nikoli nutně taneční pár).
+                RegisteredWith = context.CourseEnrollmentPartners
+                    .Where(p => p.CourseEnrollmentId == e.Id)
+                    .Select(p => p.FirstName + " " + p.LastName)
+                    .FirstOrDefault()
             })
             .ToListAsync();
 
-        // Studenti bez uživatelského účtu.
+        // 2) Partner bez účtu přihlášený společně s uživatelem.
+        var partners = await context.CourseEnrollmentPartners
+            .AsNoTracking()
+            .Where(p => p.Enrollment.CourseId == id &&
+                p.Enrollment.Status == CourseEnrollmentStatus.Registered)
+            .Select(p => new
+            {
+                EnrollmentId = (Guid?)p.CourseEnrollmentId,
+                ParticipantId = p.Id,
+                PersonType = "Partner",
+                p.FirstName,
+                p.LastName,
+                FullName = p.FirstName + " " + p.LastName,
+                Email = p.SavedPartner.Email,
+                PhoneNumber = p.SavedPartner.PhoneNumber,
+                DanceRole = p.DanceRole,
+                Rotation = (bool?)p.Rotation,
+                RegisteredAt = (DateTimeOffset?)p.Enrollment.CreatedAt,
+                DateOfBirth = (DateOnly?)null,
+                TeacherName = (string?)null,
+                RegisteredWith = (string?)(
+                    p.Enrollment.User.FirstName + " " +
+                    p.Enrollment.User.LastName
+                )
+            })
+            .ToListAsync();
+
+        // 3) Stávající školní studenti – pouze čteme, nic neměníme.
         var students = await context.Students
             .AsNoTracking()
             .Where(s => s.CourseId == id)
-            .OrderBy(s => s.LastName)
-            .ThenBy(s => s.FirstName)
             .Select(s => new
             {
                 EnrollmentId = (Guid?)null,
@@ -218,11 +245,13 @@ public class LecturerCoursesController(
                 s.DateOfBirth,
                 TeacherName = s.Teacher != null
                     ? s.Teacher.FirstName + " " + s.Teacher.LastName
-                    : null
+                    : null,
+                RegisteredWith = (string?)null
             })
             .ToListAsync();
 
         var participants = enrollments
+            .Concat(partners)
             .Concat(students)
             .OrderBy(p => p.LastName)
             .ThenBy(p => p.FirstName)
@@ -232,19 +261,27 @@ public class LecturerCoursesController(
         {
             CourseId = course.Id,
             CourseName = course.Name,
-            Capacity = course.Capacity,
+            course.Capacity,
+            course.BalancedRoles,
+            course.AllowLeaderRegistration,
+            course.AllowFollowerRegistration,
             RegisteredCount = enrollments.Count,
+            PartnerCount = partners.Count,
             StudentCount = students.Count,
+            LeaderCount = participants.Count(p => p.DanceRole == "Leader"),
+            FollowerCount = participants.Count(p => p.DanceRole == "Follower"),
+            UnassignedRoleCount = participants.Count(p =>
+                p.PersonType != "Student" && string.IsNullOrEmpty(p.DanceRole)),
             TotalCount = participants.Count,
-            AvailablePlaces = Math.Max(
-                0,
-                course.Capacity - participants.Count
-            ),
+            OccupiedPlaces = participants.Count,
+            AvailablePlaces = Math.Max(0, course.Capacity - participants.Count),
+            IsFull = participants.Count >= course.Capacity,
+            OverCapacity = Math.Max(0, participants.Count - course.Capacity),
             Participants = participants
         });
     }
 
-    
+
     // GET: api/lecturer/courses/{id}/participants/{participantId}
     [HttpGet("{id:guid}/participants/{participantId:guid}")]
     public async Task<IActionResult> GetCourseParticipantDetail(
@@ -316,7 +353,53 @@ public class LecturerCoursesController(
             });
         }
 
-        // 2. Jinak zkusíme registrovaného uživatele.
+        // 2. Partner bez účtu, přihlášený přes jiného uživatele.
+        var partner = await context.CourseEnrollmentPartners
+            .AsNoTracking()
+            .Where(p => p.Id == participantId &&
+                p.Enrollment.CourseId == id &&
+                p.Enrollment.Status == CourseEnrollmentStatus.Registered)
+            .Select(p => new
+            {
+                p.Id,
+                p.SavedPartnerId,
+                p.FirstName,
+                p.LastName,
+                FullName = p.FirstName + " " + p.LastName,
+                Email = p.SavedPartner.Email,
+                PhoneNumber = p.SavedPartner.PhoneNumber,
+                p.DanceRole,
+                p.Rotation,
+                RegisteredAt = p.Enrollment.CreatedAt,
+                RegisteredWith = p.Enrollment.User.FirstName + " " +
+                                 p.Enrollment.User.LastName,
+                CourseId = p.Enrollment.CourseId,
+                CourseName = p.Enrollment.Course.Name,
+                StartDate = p.Enrollment.Course.StartDate,
+                EndDate = p.Enrollment.Course.EndDate
+            })
+            .FirstOrDefaultAsync();
+
+        if (partner != null)
+        {
+            return Ok(new
+            {
+                PersonType = "Partner",
+                Participant = partner,
+                Courses = new[]
+                {
+                    new
+                    {
+                        partner.CourseId,
+                        partner.CourseName,
+                        partner.StartDate,
+                        partner.EndDate
+                    }
+                }
+            });
+        }
+
+        // 3. Jinak zkusíme registrovaného uživatele.
         var enrollment = await context.CourseEnrollments
             .AsNoTracking()
             .Where(e =>

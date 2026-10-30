@@ -6,15 +6,23 @@ type CurrentUser = { roles: string[] }
 const currentUser = useState<CurrentUser | null>('auth-user', () => null)
 const isAuthLoaded = useState<boolean>('auth-loaded', () => false)
 
+
 async function fetchUser() {
   try {
-    currentUser.value = await $fetch<CurrentUser>(`${config.public.apiBase}/api/auth/me`, { credentials: 'include' })
+    currentUser.value = await $fetch<CurrentUser>(
+      `${config.public.apiBase}/api/auth/me`,
+      { credentials: 'include' }
+    )
+
+    await fetchCredits()
   } catch {
     currentUser.value = null
+    navbarCredit.value = null
   } finally {
     isAuthLoaded.value = true
   }
 }
+
 
 onMounted(() => {
   fetchUser()
@@ -29,6 +37,36 @@ const isAdmin = computed(() => currentUser.value?.roles.includes('Admin') ?? fal
 const isInstructor = computed(() =>
   currentUser.value?.roles.includes('Instructor') ?? false
 )
+
+const navbarCredit = useState<number | null>(
+  'olomove-credit',
+  () => null
+)
+
+const creditLabel = computed(() => {
+  if (navbarCredit.value === null) return 'Kredity: —'
+
+  return `${new Intl.NumberFormat('cs-CZ').format(navbarCredit.value)} kreditů`
+})
+
+async function fetchCredits() {
+  if (!currentUser.value || isAdmin.value || isInstructor.value) {
+    navbarCredit.value = null
+    return
+  }
+
+  try {
+    const response = await $fetch<{ credit: number }>(
+      `${config.public.apiBase}/api/user/my-courses`,
+      { credentials: 'include' }
+    )
+
+    navbarCredit.value = response.credit
+  } catch {
+    navbarCredit.value = null
+  }
+}
+
 
 const guestMenuItems = [
   { label: 'Úvod', to: '/' },
@@ -70,6 +108,7 @@ async function logout() {
     credentials: 'include'
   })
   currentUser.value = null
+  navbarCredit.value = null
   isAuthLoaded.value = false
   await navigateTo('/')
 }
@@ -97,8 +136,11 @@ async function logout() {
         <template v-if="isLoggedIn">
           <UButton
             v-if="!isAdmin && !isInstructor"
-            label="Počet kreditů"
+            :label="creditLabel"
+            to="/profile"
+            icon="i-lucide-coins"
             color="primary"
+            variant="solid"
             size="sm"
             class="cursor-pointer"
           />
