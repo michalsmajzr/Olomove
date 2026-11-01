@@ -14,6 +14,7 @@ public class User : IdentityUser<Guid>
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 
     public ICollection<CourseInstructor> CourseInstructors { get; set; } = new List<CourseInstructor>();
+    public ICollection<SavedPartner> SavedPartners { get; private set; } = new List<SavedPartner>();
 
     // Kurzy, na které je uživatel přihlášený jako student.
     public ICollection<CourseEnrollment> CourseEnrollments { get; set; } = new List<CourseEnrollment>();

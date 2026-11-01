@@ -1,16 +1,6 @@
+using Olomove.Models.Courses.Enums;
+
 namespace Olomove.Models.Courses;
-
-public enum CourseWeekday
-{
-    Monday,
-    Tuesday,
-    Wednesday,
-    Thursday,
-    Friday,
-    Saturday,
-    Sunday
-}
-
 
 public class CourseSession
 {

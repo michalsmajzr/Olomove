@@ -19,7 +19,9 @@ async function login() {
         ? '/admin/users'
         : user.roles.includes('Instructor')
           ? '/lecturer'
-          : '/'
+          : user.roles.includes('User')
+            ? '/profile'
+            : '/'
 
     await navigateTo(redirectPath)
   } catch (error: unknown) {
