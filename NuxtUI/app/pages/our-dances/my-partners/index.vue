@@ -171,6 +171,7 @@ async function savePartner() {
             v-if="!isFormVisible"
             icon="i-lucide-plus"
             @click="startAdding"
+            :ui="{ base: 'cursor-pointer' }"
           >
             Přidat partnera
           </UButton>
@@ -221,6 +222,7 @@ async function savePartner() {
                   color="neutral"
                   size="sm"
                   @click="startEditing(partner)"
+                  :ui="{ base: 'cursor-pointer' }"
                 >
                   Upravit
                 </UButton>
@@ -296,11 +298,12 @@ async function savePartner() {
                 color="neutral"
                 :disabled="isSaving"
                 @click="cancelForm"
+                :ui="{ base: 'cursor-pointer' }"
               >
                 Zrušit
               </UButton>
 
-              <UButton type="submit" :loading="isSaving">
+              <UButton type="submit" :loading="isSaving" :ui="{ base: 'cursor-pointer' }">
                 {{ editingPartnerId ? 'Uložit změny' : 'Uložit partnera' }}
               </UButton>
             </div>

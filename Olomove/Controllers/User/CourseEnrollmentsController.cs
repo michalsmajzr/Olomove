@@ -1,4 +1,3 @@
-
 using System.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -8,12 +7,13 @@ using Npgsql;
 using Olomove.Constants;
 using Olomove.Data;
 using Olomove.Models.Courses;
+using Olomove.Models.Courses.Enums;
 using Olomove.Models.Users;
 
 namespace Olomove.Controllers.Enrollment;
 
 [ApiController]
-[Authorize]
+[Authorize(Roles = "User")]
 [Route("api/courses/{courseId:guid}/enrollments")]
 public class CourseEnrollmentsController(
     ApplicationDbContext context,
@@ -25,7 +25,7 @@ public class CourseEnrollmentsController(
         public string? DanceRole { get; set; }
         public bool Rotation { get; set; } = true;
 
-        // Volitelné: uživatel se může přihlásit sám.
+        // Volitelné: uživatel může přihlásit partnera.
         public Guid? SavedPartnerId { get; set; }
         public bool PartnerRotation { get; set; } = false;
     }
@@ -46,42 +46,29 @@ public class CourseEnrollmentsController(
         if (course == null)
             return NotFound("Kurz nebyl nalezen.");
 
-        var registered = await context.CourseEnrollments
-            .CountAsync(e =>
-                e.CourseId == courseId &&
-                e.Status == CourseEnrollmentStatus.Registered);
+        var activeEnrollments = await context.CourseEnrollments
+            .AsNoTracking()
+            .Where(e => e.CourseId == courseId && e.Status == CourseEnrollmentStatus.Registered)
+            .Select(e => new
+            {
+                e.DanceRole,
+                e.SavedPartnerId,
+                e.PartnerDanceRole
+            })
+            .ToListAsync();
 
-        var partners = await context.CourseEnrollmentPartners
-            .CountAsync(p =>
-                p.Enrollment.CourseId == courseId &&
-                p.Enrollment.Status == CourseEnrollmentStatus.Registered);
-
-        var students = await context.Students
-            .CountAsync(s => s.CourseId == courseId);
+        var registered = activeEnrollments.Count;
+        var partners = activeEnrollments.Count(e => e.SavedPartnerId.HasValue);
+        var students = await context.Students.CountAsync(s => s.CourseId == courseId);
 
         var occupied = registered + partners + students;
 
-        // BalancedRoles je zdroj pravdy pro parovy kurz.
-        // Do poctu roli patri i partneri bez uzivatelskeho uctu.
-        var leaders = await context.CourseEnrollments.CountAsync(e =>
-            e.CourseId == courseId &&
-            e.Status == CourseEnrollmentStatus.Registered &&
-            e.DanceRole == "Leader");
+        // Do počtu rolí započítáváme jak hlavní uživatele, tak přihlášené partnery.
+        var leaders = activeEnrollments.Count(e => e.DanceRole == DanceRole.Leader) +
+                      activeEnrollments.Count(e => e.PartnerDanceRole == DanceRole.Leader);
 
-        leaders += await context.CourseEnrollmentPartners.CountAsync(p =>
-            p.Enrollment.CourseId == courseId &&
-            p.Enrollment.Status == CourseEnrollmentStatus.Registered &&
-            p.DanceRole == "Leader");
-
-        var followers = await context.CourseEnrollments.CountAsync(e =>
-            e.CourseId == courseId &&
-            e.Status == CourseEnrollmentStatus.Registered &&
-            e.DanceRole == "Follower");
-
-        followers += await context.CourseEnrollmentPartners.CountAsync(p =>
-            p.Enrollment.CourseId == courseId &&
-            p.Enrollment.Status == CourseEnrollmentStatus.Registered &&
-            p.DanceRole == "Follower");
+        var followers = activeEnrollments.Count(e => e.DanceRole == DanceRole.Follower) +
+                        activeEnrollments.Count(e => e.PartnerDanceRole == DanceRole.Follower);
 
         var maxPerRole = course.Capacity / 2;
         var hasFreePlace = occupied < course.Capacity;
@@ -91,8 +78,9 @@ public class CourseEnrollmentsController(
         var canRegisterFollower = course.BalancedRoles &&
             course.AllowFollowerRegistration &&
             followers < maxPerRole && hasFreePlace;
-        // Pokud lektor uzavre samostatne prihlasovani jedne role,
-        // cely par je nadale povoleny, pokud se vejde do obou limitu.
+
+        // Pokud lektor uzavře samostatné přihlašování jedné role,
+        // celý pár je nadále povolený, pokud se vejde do obou limitů.
         var canRegisterPair = course.BalancedRoles &&
             course.Capacity - occupied >= 2 &&
             leaders < maxPerRole && followers < maxPerRole;
@@ -135,7 +123,7 @@ public class CourseEnrollmentsController(
 
     // POST: přihlášení jednotlivce nebo dvojice.
     [HttpPost]
-    [Authorize(Roles = UserRoles.User)] // Přihlášky smí vytvářet pouze zákazníci.
+    [Authorize] // Přihlášky smí vytvářet pouze zákazníci.
     public async Task<IActionResult> Enroll(
         Guid courseId,
         [FromBody] EnrollRequest request)
@@ -147,8 +135,7 @@ public class CourseEnrollmentsController(
 
         // Kontrola a odečtení kreditů budou v jedné transakci.
         await using var transaction =
-            await context.Database.BeginTransactionAsync(
-                IsolationLevel.Serializable);
+            await context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
 
         try
         {
@@ -161,33 +148,32 @@ public class CourseEnrollmentsController(
             var today = DateOnly.FromDateTime(DateTime.Today);
 
             if (course.StartDate < today)
-                return BadRequest(
-                    "Na kurz, který již začal, se nelze přihlásit.");
+                return BadRequest("Na kurz, který již začal, se nelze přihlásit.");
 
             if (today > course.StartDate.AddDays(-7))
-                {
-                    return BadRequest(
-                        "Přihlášení je možné nejpozději 7 dní před začátkem kurzu.");
-                }
+                return BadRequest("Přihlášení je možné nejpozději 7 dní před začátkem kurzu.");
 
             if (course.Price < 0 || course.Capacity < 1)
                 return BadRequest("Kurz nemá platnou cenu nebo kapacitu.");
 
             var isSolo = !course.BalancedRoles;
-            var role = request.DanceRole?.Trim();
+            DanceRole? role = null;
 
             if (isSolo)
             {
                 if (request.SavedPartnerId.HasValue)
-                    return BadRequest(
-                        "Na sólový kurz nelze přihlásit partnera.");
-
-                role = null;
+                    return BadRequest("Na sólový kurz nelze přihlásit partnera.");
             }
-            else if (role is not ("Leader" or "Follower"))
+            else if (!Enum.TryParse<DanceRole>(
+                         request.DanceRole?.Trim(),
+                         ignoreCase: true,
+                         out var parsedRole))
             {
-                return BadRequest(
-                    "Vyberte taneční roli Leader nebo Follower.");
+                return BadRequest("Vyberte taneční roli Leader nebo Follower.");
+            }
+            else
+            {
+                role = parsedRole;
             }
 
             // Ověření, že uložený partner patří uživateli.
@@ -202,23 +188,17 @@ public class CourseEnrollmentsController(
                         p.OwnerUserId == userId);
 
                 if (partner == null)
-                    return BadRequest(
-                        "Vybraný partner neexistuje nebo vám nepatří.");
+                    return BadRequest("Vybraný partner neexistuje nebo vám nepatří.");
             }
 
             // Samostatná přihláška musí respektovat povolené role.
-            // Kompletní pár přihlašuje Leader + Follower současně.
             if (!isSolo && partner == null)
             {
-                if (role == "Leader" &&
-                    !course.AllowLeaderRegistration)
-                    return Conflict(
-                        "Samostatné přihlašování role Leader je uzavřené.");
+                if (role == DanceRole.Leader && !course.AllowLeaderRegistration)
+                    return Conflict("Samostatné přihlašování role Leader je uzavřené.");
 
-                if (role == "Follower" &&
-                    !course.AllowFollowerRegistration)
-                    return Conflict(
-                        "Samostatné přihlašování role Follower je uzavřené.");
+                if (role == DanceRole.Follower && !course.AllowFollowerRegistration)
+                    return Conflict("Samostatné přihlašování role Follower je uzavřené.");
             }
 
             // Ověření předchozí přihlášky.
@@ -233,60 +213,37 @@ public class CourseEnrollmentsController(
             if (existing?.Status == CourseEnrollmentStatus.WaitingList)
                 return Conflict("Na tento kurz už jste na čekací listině.");
 
-            // Počet účastníků = uživatelé + partneři + Students.
-            // Students pouze čteme, nijak je neměníme.
-            var registered = await context.CourseEnrollments
-                .CountAsync(e =>
-                    e.CourseId == courseId &&
-                    e.Status == CourseEnrollmentStatus.Registered);
+            // Načtení aktivních přihlášek pro kontrolu kapacity
+            var activeEnrollments = await context.CourseEnrollments
+                .AsNoTracking()
+                .Where(e => e.CourseId == courseId && e.Status == CourseEnrollmentStatus.Registered)
+                .Select(e => new { e.DanceRole, e.SavedPartnerId, e.PartnerDanceRole })
+                .ToListAsync();
 
-            var registeredPartners =
-                await context.CourseEnrollmentPartners
-                    .CountAsync(p =>
-                        p.Enrollment.CourseId == courseId &&
-                        p.Enrollment.Status ==
-                            CourseEnrollmentStatus.Registered);
-
-            var students = await context.Students
-                .CountAsync(s => s.CourseId == courseId);
+            var registeredCount = activeEnrollments.Count;
+            var registeredPartnersCount = activeEnrollments.Count(e => e.SavedPartnerId.HasValue);
+            var students = await context.Students.CountAsync(s => s.CourseId == courseId);
 
             var peopleCount = partner == null ? 1 : 2;
 
-            if (registered + registeredPartners + students +
-                peopleCount > course.Capacity)
+            if (registeredCount + registeredPartnersCount + students + peopleCount > course.Capacity)
             {
-                return Conflict(
-                    "Na kurzu není dostatek volných míst.");
+                return Conflict("Na kurzu není dostatek volných míst.");
             }
 
-            // Pevna kvota: maximalne polovina kapacity pro kazdou roli.
-            // Kontrolujeme i partnery bez uctu, a to i u prihlaseni celeho paru.
+            // Pevná kvóta: maximálně polovina kapacity pro každou roli.
             if (!isSolo)
             {
                 var maxPerRole = course.Capacity / 2;
 
-                var leaderCount = await context.CourseEnrollments.CountAsync(e =>
-                    e.CourseId == courseId &&
-                    e.Status == CourseEnrollmentStatus.Registered &&
-                    e.DanceRole == "Leader");
+                var leaderCount = activeEnrollments.Count(e => e.DanceRole == DanceRole.Leader) +
+                                  activeEnrollments.Count(e => e.PartnerDanceRole == DanceRole.Leader);
 
-                leaderCount += await context.CourseEnrollmentPartners.CountAsync(p =>
-                    p.Enrollment.CourseId == courseId &&
-                    p.Enrollment.Status == CourseEnrollmentStatus.Registered &&
-                    p.DanceRole == "Leader");
+                var followerCount = activeEnrollments.Count(e => e.DanceRole == DanceRole.Follower) +
+                                    activeEnrollments.Count(e => e.PartnerDanceRole == DanceRole.Follower);
 
-                var followerCount = await context.CourseEnrollments.CountAsync(e =>
-                    e.CourseId == courseId &&
-                    e.Status == CourseEnrollmentStatus.Registered &&
-                    e.DanceRole == "Follower");
-
-                followerCount += await context.CourseEnrollmentPartners.CountAsync(p =>
-                    p.Enrollment.CourseId == courseId &&
-                    p.Enrollment.Status == CourseEnrollmentStatus.Registered &&
-                    p.DanceRole == "Follower");
-
-                var addingLeader = partner != null || role == "Leader" ? 1 : 0;
-                var addingFollower = partner != null || role == "Follower" ? 1 : 0;
+                var addingLeader = partner != null || role == DanceRole.Leader ? 1 : 0;
+                var addingFollower = partner != null || role == DanceRole.Follower ? 1 : 0;
 
                 if (leaderCount + addingLeader > maxPerRole)
                     return Conflict("Kapacita role Leader je naplněna.");
@@ -307,8 +264,7 @@ public class CourseEnrollmentsController(
             if (user.Credit < totalPrice)
             {
                 return Conflict(
-                    $"Nedostatek kreditů. Potřebujete {totalPrice}, " +
-                    $"ale máte pouze {user.Credit}.");
+                    $"Nedostatek kreditů. Potřebujete {totalPrice}, ale máte pouze {user.Credit}.");
             }
 
             // Odečtení kreditů.
@@ -326,49 +282,24 @@ public class CourseEnrollmentsController(
             enrollment.PaidCredits = totalPrice;
             enrollment.Status = CourseEnrollmentStatus.Registered;
 
-            if (existing == null)
-                context.CourseEnrollments.Add(enrollment);
-
-            // Případný partner předchozí zrušené přihlášky.
-            var oldPartner = existing == null
-                ? null
-                : await context.CourseEnrollmentPartners
-                    .FirstOrDefaultAsync(p =>
-                        p.CourseEnrollmentId == existing.Id);
-
-            if (partner == null)
+            // Nastavení partnera přímo na přihlášku
+            if (partner != null)
             {
-                if (oldPartner != null)
-                    context.CourseEnrollmentPartners.Remove(oldPartner);
+                enrollment.SavedPartnerId = partner.Id;
+                enrollment.PartnerDanceRole = role == DanceRole.Leader ? DanceRole.Follower : DanceRole.Leader;
+                enrollment.PartnerRotation = request.PartnerRotation;
             }
             else
             {
-                var newPartner = oldPartner ??
-                    new CourseEnrollmentPartner
-                    {
-                        Enrollment = enrollment,
-                        SavedPartnerId = partner.Id,
-                        FirstName = partner.FirstName,
-                        LastName = partner.LastName
-                    };
-
-                newPartner.SavedPartnerId = partner.Id;
-                newPartner.FirstName = partner.FirstName;
-                newPartner.LastName = partner.LastName;
-
-                // Partner má opačnou taneční roli.
-                newPartner.DanceRole =
-                    role == "Leader" ? "Follower" : "Leader";
-
-                newPartner.Rotation = request.PartnerRotation;
-
-                if (oldPartner == null)
-                    context.CourseEnrollmentPartners.Add(newPartner);
+                enrollment.SavedPartnerId = null;
+                enrollment.PartnerDanceRole = null;
+                enrollment.PartnerRotation = null;
             }
 
-            await context.SaveChangesAsync();
+            if (existing == null)
+                context.CourseEnrollments.Add(enrollment);
 
-            // Teprve teď je přihláška i platba potvrzena.
+            await context.SaveChangesAsync();
             await transaction.CommitAsync();
 
             return Ok(new
@@ -377,9 +308,7 @@ public class CourseEnrollmentsController(
                 enrollment.CourseId,
                 enrollment.Status,
                 enrollment.PaidCredits,
-                PartnerName = partner == null
-                    ? null
-                    : $"{partner.FirstName} {partner.LastName}",
+                PartnerName = partner == null ? null : $"{partner.FirstName} {partner.LastName}",
                 Credit = user.Credit
             });
         }
@@ -387,22 +316,19 @@ public class CourseEnrollmentsController(
         {
             await transaction.RollbackAsync();
 
-            return Conflict(
-                "Přihlášku se nepodařilo dokončit. Zkuste to znovu.");
+            return Conflict("Přihlášku se nepodařilo dokončit. Zkuste to znovu.");
         }
-        catch (PostgresException ex)
-            when (ex.SqlState is "40001" or "40P01")
+        catch (PostgresException ex) when (ex.SqlState is "40001" or "40P01")
         {
             await transaction.RollbackAsync();
 
-            return Conflict(
-                "Došlo k souběžné změně přihlášek. Zkuste to znovu.");
+            return Conflict("Došlo k souběžné změně přihlášek. Zkuste to znovu.");
         }
     }
 
     // POST: api/courses/{courseId}/enrollments/cancel
     [HttpPost("cancel")]
-    [Authorize(Roles = UserRoles.User)] // Odhlášení může provést vlastník zákaznického účtu.
+    [Authorize(Roles = UserRoles.User)]
     public async Task<IActionResult> Cancel(Guid courseId)
     {
         var userIdText = userManager.GetUserId(User);
@@ -411,8 +337,7 @@ public class CourseEnrollmentsController(
             return Unauthorized();
 
         await using var transaction =
-            await context.Database.BeginTransactionAsync(
-                IsolationLevel.Serializable);
+            await context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
 
         try
         {
@@ -433,8 +358,7 @@ public class CourseEnrollmentsController(
             if (today > enrollment.Course.StartDate.AddDays(-7))
             {
                 return BadRequest(
-                    "Bezplatné odhlášení je možné nejpozději " +
-                    "7 dní před začátkem kurzu.");
+                    "Bezplatné odhlášení je možné nejpozději 7 dní před začátkem kurzu.");
             }
 
             var user = await context.Users
@@ -462,18 +386,13 @@ public class CourseEnrollmentsController(
         {
             await transaction.RollbackAsync();
 
-            return Conflict(
-                "Odhlášení se nepodařilo dokončit.");
+            return Conflict("Odhlášení se nepodařilo dokončit.");
         }
-        catch (PostgresException ex)
-            when (ex.SqlState is "40001" or "40P01")
+        catch (PostgresException ex) when (ex.SqlState is "40001" or "40P01")
         {
             await transaction.RollbackAsync();
 
-            return Conflict(
-                "Proběhla souběžná změna. Zkuste to znovu.");
+            return Conflict("Proběhla souběžná změna. Zkuste to znovu.");
         }
     }
-
-    
 }

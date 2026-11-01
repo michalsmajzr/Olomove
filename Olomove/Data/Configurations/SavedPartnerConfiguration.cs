@@ -1,4 +1,3 @@
-
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Olomove.Models.Users;
@@ -10,8 +9,8 @@ public class SavedPartnerConfiguration : IEntityTypeConfiguration<SavedPartner>
     public void Configure(EntityTypeBuilder<SavedPartner> builder)
     {
         // Partner patří uživateli, který si ho uložil.
-        builder.HasOne(partner => partner.Owner)
-            .WithMany()
+        builder.HasOne(partner => partner.OwnerUser)
+            .WithMany(user => user.SavedPartners)
             .HasForeignKey(partner => partner.OwnerUserId)
             .OnDelete(DeleteBehavior.Restrict);
 

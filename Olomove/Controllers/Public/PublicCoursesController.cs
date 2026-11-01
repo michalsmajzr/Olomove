@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Olomove.Data;
 using Olomove.Models.Courses;
+using Olomove.Models.Courses.Enums;
 
 namespace Olomove.Controllers.Public;
 
@@ -34,69 +35,57 @@ public class PublicCoursesController(
             .ThenBy(c => c.Name)
             .ToListAsync();
 
-        // Partneři přihlášení společně s uživatelem také zabírají místo.
-        // Počítáme pouze partnery aktivních (Registered) přihlášek.
-        var courseIds = courses.Select(c => c.Id).ToList();
-        var partnerCounts = await context.CourseEnrollmentPartners
-            .AsNoTracking()
-            .Where(p => courseIds.Contains(p.Enrollment.CourseId) &&
-                        p.Enrollment.Status == CourseEnrollmentStatus.Registered)
-            .GroupBy(p => p.Enrollment.CourseId)
-            .Select(g => new { CourseId = g.Key, Count = g.Count() })
-            .ToDictionaryAsync(x => x.CourseId, x => x.Count);
-
-        var result = courses.Select(course => new
+        var result = courses.Select(course =>
         {
-            course.Id,
-            course.Name,
-            course.Description,
-            course.CourseType,
-            course.Level,
-            course.StartDate,
-            course.EndDate,
-            course.Capacity,
-            course.Price,
+            var occupiedPlaces = GetOccupiedPlaces(course);
 
-            RegisteredCount = course.CourseEnrollments.Count(
-                e => e.Status == CourseEnrollmentStatus.Registered
-            ),
+            return new
+            {
+                course.Id,
+                course.Name,
+                course.Description,
+                course.CourseType,
+                course.Level,
+                course.StartDate,
+                course.EndDate,
+                course.Capacity,
+                course.Price,
 
-            OccupiedPlaces = GetOccupiedPlaces(
-                course,
-                partnerCounts.GetValueOrDefault(course.Id)
-            ),
+                RegisteredCount = course.CourseEnrollments.Count(
+                    e => e.Status == CourseEnrollmentStatus.Registered
+                ),
 
-            AvailablePlaces = Math.Max(
-                0,
-                course.Capacity - GetOccupiedPlaces(
-                    course,
-                    partnerCounts.GetValueOrDefault(course.Id)
-                )
-            ),
+                OccupiedPlaces = occupiedPlaces,
 
-            DanceStyles = course.CourseDanceStyles
-                .Where(cd => cd.DanceStyle != null)
-                .Select(cd => cd.DanceStyle!.Name)
-                .ToList(),
+                AvailablePlaces = Math.Max(
+                    0,
+                    course.Capacity - occupiedPlaces
+                ),
 
-            Instructors = course.CourseInstructors
-                .Where(ci => ci.Instructor != null)
-                .Select(ci =>
-                    ci.Instructor!.FirstName + " " +
-                    ci.Instructor.LastName)
-                .ToList(),
+                DanceStyles = course.CourseDanceStyles
+                    .Where(cd => cd.DanceStyle != null)
+                    .Select(cd => cd.DanceStyle!.Name)
+                    .ToList(),
 
-            Sessions = course.Sessions
-                .OrderBy(s => s.Weekday)
-                .ThenBy(s => s.StartsAt)
-                .Select(s => new
-                {
-                    s.Weekday,
-                    s.StartsAt,
-                    s.EndsAt,
-                    Room = s.Room?.Name
-                })
-                .ToList()
+                Instructors = course.CourseInstructors
+                    .Where(ci => ci.Instructor != null)
+                    .Select(ci =>
+                        ci.Instructor!.FirstName + " " +
+                        ci.Instructor.LastName)
+                    .ToList(),
+
+                Sessions = course.Sessions
+                    .OrderBy(s => s.Weekday)
+                    .ThenBy(s => s.StartsAt)
+                    .Select(s => new
+                    {
+                        s.Weekday,
+                        s.StartsAt,
+                        s.EndsAt,
+                        Room = s.Room?.Name
+                    })
+                    .ToList()
+            };
         }).ToList();
 
         return Ok(result);
@@ -128,13 +117,7 @@ public class PublicCoursesController(
             return NotFound("Kurz nebyl nalezen.");
         }
 
-        var partnerCount = await context.CourseEnrollmentPartners
-            .AsNoTracking()
-            .CountAsync(p =>
-                p.Enrollment.CourseId == id &&
-                p.Enrollment.Status == CourseEnrollmentStatus.Registered);
-
-        var occupiedPlaces = GetOccupiedPlaces(course, partnerCount);
+        var occupiedPlaces = GetOccupiedPlaces(course);
 
         var result = new
         {
@@ -194,14 +177,19 @@ public class PublicCoursesController(
     }
 
     // Pomocná metoda pro výpočet obsazenosti.
-    private static int GetOccupiedPlaces(Course course, int registeredPartners)
+    private static int GetOccupiedPlaces(Course course)
     {
-        var registeredUsers = course.CourseEnrollments
-            .Count(e =>
-                e.Status == CourseEnrollmentStatus.Registered
-            );
+        var activeEnrollments = course.CourseEnrollments
+            .Where(e => e.Status == CourseEnrollmentStatus.Registered)
+            .ToList();
 
-        // Studenti ze škol zůstávají samostatně evidovaní.
+        // Registrovaní uživatelé
+        var registeredUsers = activeEnrollments.Count;
+
+        // Přihlášení partneři v rámci těchto přihlášek
+        var registeredPartners = activeEnrollments.Count(e => e.SavedPartnerId.HasValue);
+
+        // Studenti ze škol zůstávají samostatně evidovaní
         var studentsWithoutAccount = course.Students.Count;
 
         return registeredUsers + registeredPartners + studentsWithoutAccount;

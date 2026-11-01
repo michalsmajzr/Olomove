@@ -131,7 +131,7 @@ const registrationClosed = computed(() => {
 
         <!-- Návrat na seznam kurzů -->
         <UButton
-          to="/nase-tance"
+          to="/our-dances"
           icon="i-lucide-arrow-left"
           color="neutral"
           variant="ghost"
@@ -365,7 +365,7 @@ const registrationClosed = computed(() => {
 
                   <UButton
                     v-if="!registrationClosed && availablePlaces > 0"
-                    :to="`/prihlaseni/${course.id}`"
+                    :to="`/our-dances/enroll/${course.id}`"
                     icon="i-lucide-calendar-check"
                     size="lg"
                     block

@@ -9,7 +9,7 @@ using Olomove.Models.Users;
 namespace Olomove.Controllers.Partners;
 
 [ApiController]
-[Authorize]
+[Authorize(Roles = "User")]
 [Route("api/user/saved-partners")]
 public class SavedPartnersController(
     ApplicationDbContext context,

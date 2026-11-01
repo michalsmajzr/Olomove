@@ -1,3 +1,4 @@
+using Olomove.Models.Courses.Enums;
 using Olomove.Models.Users;
 
 namespace Olomove.Models.Courses;
@@ -17,10 +18,16 @@ public class CourseEnrollment
     public User User { get; set; } = null!;
 
     // Taneční role: Leader / Follower.
-    public string? DanceRole { get; set; }
+    public DanceRole? DanceRole { get; set; }
 
     // Zda chce během lekcí střídat taneční partnery.
     public bool Rotation { get; set; } = true;
+
+    // Partner, kterého si uživatel přihlásil.
+    public Guid? SavedPartnerId { get; set; }
+    public SavedPartner? SavedPartner { get; set; }
+    public DanceRole? PartnerDanceRole { get; set; }
+    public bool? PartnerRotation { get; set; }
 
     // Stav přihlášky.
     public CourseEnrollmentStatus Status { get; set; }
@@ -33,11 +40,4 @@ public class CourseEnrollment
     // Datum vytvoření přihlášky.
     public DateTimeOffset CreatedAt { get; set; }
         = DateTimeOffset.UtcNow;
-}
-
-public enum CourseEnrollmentStatus
-{
-    Registered = 0,
-    Cancelled = 1,
-    WaitingList = 2
 }

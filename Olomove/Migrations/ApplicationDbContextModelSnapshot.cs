@@ -201,28 +201,45 @@ namespace Olomove.Migrations
                     b.Property<Guid>("CourseId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("CourseId1")
+                        .HasColumnType("uuid");
+
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("DanceRole")
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
 
                     b.Property<decimal>("PaidCredits")
                         .HasColumnType("numeric");
 
+                    b.Property<string>("PartnerDanceRole")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<bool?>("PartnerRotation")
+                        .HasColumnType("boolean");
+
                     b.Property<bool>("Rotation")
                         .HasColumnType("boolean");
 
+                    b.Property<Guid?>("SavedPartnerId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("Status")
                         .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
 
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CourseId1");
+
+                    b.HasIndex("SavedPartnerId");
 
                     b.HasIndex("UserId");
 
@@ -230,45 +247,6 @@ namespace Olomove.Migrations
                         .IsUnique();
 
                     b.ToTable("CourseEnrollments");
-                });
-
-            modelBuilder.Entity("Olomove.Models.Courses.CourseEnrollmentPartner", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("CourseEnrollmentId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("DanceRole")
-                        .HasMaxLength(16)
-                        .HasColumnType("character varying(16)");
-
-                    b.Property<string>("FirstName")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<string>("LastName")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<bool>("Rotation")
-                        .HasColumnType("boolean");
-
-                    b.Property<Guid>("SavedPartnerId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CourseEnrollmentId")
-                        .IsUnique();
-
-                    b.HasIndex("SavedPartnerId");
-
-                    b.ToTable("CourseEnrollmentPartners");
                 });
 
             modelBuilder.Entity("Olomove.Models.Courses.CourseInstructor", b =>
@@ -639,10 +617,19 @@ namespace Olomove.Migrations
             modelBuilder.Entity("Olomove.Models.Courses.CourseEnrollment", b =>
                 {
                     b.HasOne("Olomove.Models.Courses.Course", "Course")
-                        .WithMany("CourseEnrollments")
+                        .WithMany()
                         .HasForeignKey("CourseId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.HasOne("Olomove.Models.Courses.Course", null)
+                        .WithMany("CourseEnrollments")
+                        .HasForeignKey("CourseId1");
+
+                    b.HasOne("Olomove.Models.Users.SavedPartner", "SavedPartner")
+                        .WithMany("CourseEnrollments")
+                        .HasForeignKey("SavedPartnerId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("Olomove.Models.Users.User", "User")
                         .WithMany("CourseEnrollments")
@@ -652,26 +639,9 @@ namespace Olomove.Migrations
 
                     b.Navigation("Course");
 
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("Olomove.Models.Courses.CourseEnrollmentPartner", b =>
-                {
-                    b.HasOne("Olomove.Models.Courses.CourseEnrollment", "Enrollment")
-                        .WithMany()
-                        .HasForeignKey("CourseEnrollmentId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Olomove.Models.Users.SavedPartner", "SavedPartner")
-                        .WithMany()
-                        .HasForeignKey("SavedPartnerId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Enrollment");
-
                     b.Navigation("SavedPartner");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Olomove.Models.Courses.CourseInstructor", b =>
@@ -714,13 +684,13 @@ namespace Olomove.Migrations
 
             modelBuilder.Entity("Olomove.Models.Users.SavedPartner", b =>
                 {
-                    b.HasOne("Olomove.Models.Users.User", "Owner")
-                        .WithMany()
+                    b.HasOne("Olomove.Models.Users.User", "OwnerUser")
+                        .WithMany("SavedPartners")
                         .HasForeignKey("OwnerUserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.Navigation("Owner");
+                    b.Navigation("OwnerUser");
                 });
 
             modelBuilder.Entity("Olomove.Models.Users.Student", b =>
@@ -764,11 +734,18 @@ namespace Olomove.Migrations
                     b.Navigation("CourseSessions");
                 });
 
+            modelBuilder.Entity("Olomove.Models.Users.SavedPartner", b =>
+                {
+                    b.Navigation("CourseEnrollments");
+                });
+
             modelBuilder.Entity("Olomove.Models.Users.User", b =>
                 {
                     b.Navigation("CourseEnrollments");
 
                     b.Navigation("CourseInstructors");
+
+                    b.Navigation("SavedPartners");
                 });
 #pragma warning restore 612, 618
         }

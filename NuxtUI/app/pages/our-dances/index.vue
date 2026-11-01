@@ -99,7 +99,6 @@ function formatDate(date: string) {
   )
 }
 
-
 // Barevná obsazenost: 0–49 % zelená, 50–74 % světle oranžová,
 // 75–99 % tmavě oranžová, 100 % červená.
 function capacityBarClass(course: Course): string {
@@ -154,25 +153,13 @@ onMounted(async () => {
 
         <!-- Přepínání kalendáře a současných kartiček kurzů. -->
         <div class="mb-8 flex flex-wrap items-center justify-between gap-3">
-          <div class="inline-flex rounded-xl border border-default bg-white p-1">
-            <button
-              type="button"
-              class="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold"
-              :class="viewMode === 'calendar' ? 'bg-orange-500 text-white' : 'text-muted hover:text-highlighted'"
-              :aria-pressed="viewMode === 'calendar'"
-              @click="viewMode = 'calendar'"
-            >
-              <UIcon name="i-lucide-calendar-days" class="size-4" /> Kalendář
-            </button>
-            <button
-              type="button"
-              class="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold"
-              :class="viewMode === 'list' ? 'bg-orange-500 text-white' : 'text-muted hover:text-highlighted'"
-              :aria-pressed="viewMode === 'list'"
-              @click="viewMode = 'list'"
-            >
+          <div class="flex gap-1 rounded-xl border border-default bg-white p-1">
+            <UButton type="button" variant="ghost" :ui="{ base: 'cursor-pointer flex items-center gap-2', padding: { sm: '', md: '' }, variant: { ghost: 'hover:bg-transparent' } }" class="px-4 py-2" :class="viewMode === 'calendar' ? 'bg-orange-500 text-white hover:bg-orange-500' : ''" :aria-pressed="viewMode === 'calendar'" @click="viewMode = 'calendar'">
+              <UIcon name="i-lucide-calendar-days" class="size-4" />Kalendář
+            </UButton>
+            <UButton type="button" variant="ghost" :ui="{ base: 'cursor-pointer flex items-center gap-2', padding: { sm: '', md: '' }, variant: { ghost: 'hover:bg-transparent' } }" class="px-4 py-2" :class="viewMode === 'list' ? 'bg-orange-500 text-white hover:bg-orange-500' : ''" :aria-pressed="viewMode === 'list'" @click="viewMode = 'list'">
               <UIcon name="i-lucide-layout-grid" class="size-4" /> Seznam kurzů
-            </button>
+            </UButton>
           </div>
           <span class="text-sm text-muted">Kurzy: {{ filteredCourses.length }}</span>
         </div>
@@ -413,7 +400,7 @@ onMounted(async () => {
               <!-- NOVÉ: Tlačítko pro detail a přihlášení -->
               <div class="mt-auto pt-2">
                 <UButton
-                  :to="`/nase-tance/${course.id}`"
+                  :to="`/our-dances/${course.id}`"
                   icon="i-lucide-arrow-right"
                   color="primary"
                   size="lg"

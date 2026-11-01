@@ -1,5 +1,4 @@
-
-using Olomove.Models.Users;
+using Olomove.Models.Courses;
 
 namespace Olomove.Models.Users;
 
@@ -17,9 +16,12 @@ public class SavedPartner
     // Uživatel, který si partnera uložil
     public Guid OwnerUserId { get; set; }
 
-    public User Owner { get; set; } = null!;
+    public User OwnerUser { get; set; } = null!;
 
     // Datum vytvoření záznamu
     public DateTimeOffset CreatedAt { get; set; }
         = DateTimeOffset.UtcNow;
+
+    // Přihlášky, na kterých je tento partner zapsán.
+    public ICollection<CourseEnrollment> CourseEnrollments { get; set; } = new List<CourseEnrollment>();
 }

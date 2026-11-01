@@ -67,18 +67,17 @@ async function fetchCredits() {
   }
 }
 
-
 const guestMenuItems = [
   { label: 'Úvod', to: '/' },
   { label: 'O nás', to: '/o-nas' },
   { label: 'Lektoři', to: '/lektori' },
-  { label: 'Naše tance', to: '/nase-tance' },
+  { label: 'Naše tance', to: '/our-dances' },
   { label: 'Kontakty', to: '/kontakty' }
 ]
 
 const signedInMenuItems = [
   { label: 'Lektoři', to: '/lektori' },
-  { label: 'Naše tance', to: '/nase-tance' },
+  { label: 'Naše tance', to: '/our-dances' },
   { label: 'Kontakty', to: '/kontakty' }
 ]
 

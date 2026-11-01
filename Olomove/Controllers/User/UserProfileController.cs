@@ -8,7 +8,7 @@ using Olomove.Models.Users;
 namespace Olomove.Controllers.Profiles;
 
 [ApiController]
-[Authorize]
+[Authorize(Roles = "User")]
 [Route("api/user/profile")]
 public class UserProfileController(
     UserManager<User> userManager

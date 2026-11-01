@@ -1,4 +1,3 @@
-
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -10,20 +9,13 @@ namespace Olomove.Controllers.Lecturer;
 [ApiController]
 [Authorize(Roles = "Instructor,Teacher,Admin")]
 [Route("api/lecturer/profile")]
-public class LecturerProfileController : ControllerBase
+public class LecturerProfileController(UserManager<User> userManager) : ControllerBase
 {
-    private readonly UserManager<User> _userManager;
-
-    public LecturerProfileController(UserManager<User> userManager)
-    {
-        _userManager = userManager;
-    }
-
     // GET: api/lecturer/profile
     [HttpGet]
     public async Task<IActionResult> GetProfile()
     {
-        var user = await _userManager.GetUserAsync(User);
+        var user = await userManager.GetUserAsync(User);
 
         if (user == null)
             return Unauthorized();
@@ -60,7 +52,7 @@ public class LecturerProfileController : ControllerBase
     public async Task<IActionResult> UpdateProfile(
         [FromBody] UpdateProfileRequest request)
     {
-        var user = await _userManager.GetUserAsync(User);
+        var user = await userManager.GetUserAsync(User);
 
         if (user == null)
             return Unauthorized();
@@ -81,7 +73,7 @@ public class LecturerProfileController : ControllerBase
             ? null
             : phoneNumber;
 
-        var result = await _userManager.UpdateAsync(user);
+        var result = await userManager.UpdateAsync(user);
 
         if (!result.Succeeded)
         {

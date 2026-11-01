@@ -22,7 +22,6 @@ public class ApplicationDbContext : IdentityDbContext<User, Role, Guid>
     public DbSet<Student> Students => Set<Student>();
 
     public DbSet<SavedPartner> SavedPartners => Set<SavedPartner>();
-    public DbSet<CourseEnrollmentPartner> CourseEnrollmentPartners => Set<CourseEnrollmentPartner>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -103,7 +102,15 @@ public class ApplicationDbContext : IdentityDbContext<User, Role, Guid>
         // Taneční role.
         modelBuilder.Entity<CourseEnrollment>()
             .Property(enrollment => enrollment.DanceRole)
+            .HasConversion<string>()
             .HasMaxLength(20);
+
+        // Vazba přihlášky na partnera.
+        modelBuilder.Entity<CourseEnrollment>()
+            .HasOne(e => e.SavedPartner)
+            .WithMany(p => p.CourseEnrollments)
+            .HasForeignKey(e => e.SavedPartnerId)
+            .OnDelete(DeleteBehavior.Restrict);
 
         // Student patří právě jednomu kurzu.
         modelBuilder.Entity<Student>()
@@ -124,6 +131,6 @@ public class ApplicationDbContext : IdentityDbContext<User, Role, Guid>
             new Olomove.Data.Configurations.SavedPartnerConfiguration());
 
         modelBuilder.ApplyConfiguration(
-            new Olomove.Data.Configurations.CourseEnrollmentPartnerConfiguration());
+            new Olomove.Data.Configurations.CourseEnrollmentConfiguration());
     }
 }

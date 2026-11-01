@@ -9,7 +9,7 @@ using Olomove.Models.Users;
 namespace Olomove.Controllers.Profile;
 
 [ApiController]
-[Authorize]
+[Authorize(Roles = "User")]
 [Route("api/user/my-courses")]
 public class MyCoursesController(
     ApplicationDbContext context,
@@ -43,17 +43,14 @@ public class MyCoursesController(
                 e.PaidCredits,
 
                 // Partner je volitelný.
-                Partner = context.CourseEnrollmentPartners
-                    .Where(p => p.CourseEnrollmentId == e.Id)
-                    .Select(p => new
-                    {
-                        p.SavedPartnerId,
-                        p.FirstName,
-                        p.LastName,
-                        p.DanceRole,
-                        p.Rotation
-                    })
-                    .FirstOrDefault(),
+                Partner = e.SavedPartner != null ? new
+                {
+                    SavedPartnerId = e.SavedPartnerId,
+                    e.SavedPartner.FirstName,
+                    e.SavedPartner.LastName,
+                    DanceRole = e.PartnerDanceRole,
+                    Rotation = e.PartnerRotation
+                } : null,
 
                 // Informace o přihlášeném kurzu.
                 Course = new

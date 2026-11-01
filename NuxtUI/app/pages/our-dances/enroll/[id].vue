@@ -205,7 +205,7 @@ async function submitEnrollment() {
     <main class="min-h-screen bg-muted/30">
       <div class="mx-auto max-w-3xl px-5 py-10">
         <UButton
-          :to="`/nase-tance/${courseId}`"
+          :to="`/our-dances/${courseId}`"
           icon="i-lucide-arrow-left"
           color="neutral"
           variant="ghost"
@@ -258,25 +258,25 @@ async function submitEnrollment() {
               <template v-if="!course.isSolo">
                 <section class="space-y-3">
                   <label class="block text-sm font-semibold">Jak se chcete přihlásit?</label>
-                  <div class="grid grid-cols-2 rounded-xl bg-muted/60 p-1">
-                    <button
-                      type="button"
-                      class="rounded-lg px-3 py-3 text-sm font-medium transition-colors"
-                      :class="!withPartner ? 'bg-white text-orange-600 shadow-sm dark:bg-neutral-800' : 'text-muted hover:text-highlighted'"
-                      :aria-pressed="!withPartner"
-                      @click="withPartner = false"
-                    >
+                  <div class="flex gap-1 rounded-xl bg-muted/60 p-1">
+                    <UButton type="button"
+                             block
+                             :variant="!withPartner ? 'solid' : 'ghost'"
+                             :color="!withPartner ? 'primary' : 'neutral'"
+                             :aria-pressed="!withPartner"
+                             :ui="{ base: 'cursor-pointer p-3' }"
+                             @click="withPartner = false">
                       Tančím sám/sama
-                    </button>
-                    <button
-                      type="button"
-                      class="rounded-lg px-3 py-3 text-sm font-medium transition-colors"
-                      :class="withPartner ? 'bg-white text-orange-600 shadow-sm dark:bg-neutral-800' : 'text-muted hover:text-highlighted'"
-                      :aria-pressed="withPartner"
-                      @click="withPartner = true"
-                    >
+                    </UButton>
+                    <UButton type="button"
+                             block
+                             :variant="withPartner ? 'solid' : 'ghost'"
+                             :color="withPartner ? 'primary' : 'neutral'"
+                             :aria-pressed="withPartner"
+                             :ui="{ base: 'cursor-pointer p-3' }"
+                             @click="withPartner = true">
                       Tančíme jako pár
-                    </button>
+                    </UButton>
                   </div>
                 </section>
 
@@ -298,7 +298,7 @@ async function submitEnrollment() {
                 <section v-if="withPartner" class="space-y-3 rounded-xl border border-default p-4">
                   <div class="flex flex-wrap items-center justify-between gap-2">
                     <label class="font-semibold">Můj taneční partner</label>
-                    <UButton to="/moji-partneri" color="neutral" variant="outline" size="xs" icon="i-lucide-plus">
+                    <UButton to="/our-dances/my-partners" color="neutral" variant="outline" size="xs" icon="i-lucide-plus">
                       Spravovat partnery
                     </UButton>
                   </div>
@@ -364,7 +364,7 @@ async function submitEnrollment() {
 
               <div class="flex flex-wrap justify-end gap-3">
                 <UButton to="/profile" color="neutral" variant="outline">Zpět na profil</UButton>
-                <UButton type="submit" icon="i-lucide-check" :loading="isSubmitting" :disabled="!canSubmit">
+                <UButton type="submit" icon="i-lucide-check" :loading="isSubmitting" :disabled="!canSubmit" :ui="{ base: 'cursor-pointer ' }">
                   Potvrdit přihlášku
                 </UButton>
               </div>

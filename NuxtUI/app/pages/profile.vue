@@ -54,16 +54,6 @@ type SavedPartner = {
   phoneNumber: string | null
 }
 
-type CalendarLesson = {
-  key: string
-  date: string
-  courseId: string
-  courseName: string
-  startsAt: string
-  endsAt: string
-  room: string | null
-}
-
 const toast = useToast()
 const selectedTab = ref<'courses' | 'calendar' | 'edit'>('courses')
 const selectedCourseTab = ref<'active' | 'history'>('active')
@@ -74,9 +64,6 @@ const showTopUp = ref(false)
 const topUpAmount = ref(500)
 
 const now = new Date()
-const calendarYear = ref(now.getFullYear())
-const calendarMonth = ref(now.getMonth()) // 0 = leden
-const selectedCalendarDate = ref(dateKey(now))
 
 const { data: coursesData, pending: coursesPending, error: coursesError, refresh: refreshCourses } =
   useFetch<MyCoursesResponse>('/api/user/my-courses', {
@@ -131,6 +118,17 @@ const historyCourses = computed(() => enrollments.value.filter(e =>
 ))
 const displayedCourses = computed(() => selectedCourseTab.value === 'active'
   ? activeCourses.value : historyCourses.value)
+const calendarCourses = computed(() => enrollments.value
+  .filter(enrollment => enrollment.status === 'Registered')
+  .map(enrollment => ({
+    id: enrollment.course.id,
+    name: enrollment.course.name,
+    startDate: enrollment.course.startDate,
+    endDate: enrollment.course.endDate,
+    level: enrollment.course.level,
+    instructors: enrollment.course.instructors,
+    sessions: enrollment.course.sessions
+  })))
 
 function formatDate(value: string): string {
   return dateFromKey(value).toLocaleDateString('cs-CZ')
@@ -160,135 +158,6 @@ function weekdayAsMondayIndex(value: string | number): number | null {
   if (/^[0-6]$/.test(label)) return Number(label)
   const index = days.indexOf(label)
   return index < 0 ? null : index
-}
-
-// Při prvním načtení otevřeme měsíc nejbližší nadcházející lekce.
-// Uživatel tak neuvidí prázdný aktuální měsíc, pokud kurz začíná až později.
-const calendarInitialized = ref(false)
-
-function nearestUpcomingLesson(enrollment: Enrollment): string | null {
-  if (enrollment.status !== 'Registered') return null
-
-  const start = dateFromKey(enrollment.course.startDate)
-  const end = dateFromKey(enrollment.course.endDate)
-  const earliest = new Date(Math.max(start.getTime(), dateFromKey(todayKey).getTime()))
-  if (earliest > end) return null
-
-  const mondayIndex = (earliest.getDay() + 6) % 7
-  const candidates: string[] = []
-
-  for (const session of enrollment.course.sessions ?? []) {
-    const weekday = weekdayAsMondayIndex(session.weekday)
-    if (weekday === null) continue
-    const offset = (weekday - mondayIndex + 7) % 7
-    const lessonDate = new Date(earliest)
-    lessonDate.setDate(lessonDate.getDate() + offset)
-    if (lessonDate <= end) candidates.push(dateKey(lessonDate))
-  }
-
-  return candidates.sort()[0] ?? null
-}
-
-watch(coursesData, value => {
-  if (!value || calendarInitialized.value) return
-  calendarInitialized.value = true
-  const upcoming = value.enrollments
-    .map(nearestUpcomingLesson)
-    .filter((day): day is string => day !== null)
-    .sort()[0]
-  if (!upcoming) return
-  const date = dateFromKey(upcoming)
-  calendarYear.value = date.getFullYear()
-  calendarMonth.value = date.getMonth()
-  selectedCalendarDate.value = upcoming
-}, { immediate: true })
-
-// Jednotlivé lekce rozepíšeme ze stávajících opakujících se rozvrhů.
-// Nenutíme uživatele zadávat zvlášť každé úterý a každou středu.
-const calendarLessons = computed<CalendarLesson[]>(() => {
-  const first = new Date(calendarYear.value, calendarMonth.value, 1, 12)
-  const last = new Date(calendarYear.value, calendarMonth.value + 1, 0, 12)
-  const result: CalendarLesson[] = []
-
-  for (const enrollment of enrollments.value) {
-    if (enrollment.status !== 'Registered') continue
-    const course = enrollment.course
-    const start = dateFromKey(course.startDate)
-    const end = dateFromKey(course.endDate)
-    const rangeStart = start > first ? start : first
-    const rangeEnd = end < last ? end : last
-    if (rangeStart > rangeEnd) continue
-
-    for (const [sessionIndex, session] of (course.sessions ?? []).entries()) {
-      const weekday = weekdayAsMondayIndex(session.weekday)
-      if (weekday === null) continue
-      const firstDayIndex = (rangeStart.getDay() + 6) % 7
-      const offset = (weekday - firstDayIndex + 7) % 7
-      const day = new Date(rangeStart)
-      day.setDate(day.getDate() + offset)
-
-      while (day <= rangeEnd) {
-        const key = dateKey(day)
-        result.push({
-          key: `${enrollment.id}-${sessionIndex}-${key}`,
-          date: key,
-          courseId: course.id,
-          courseName: course.name,
-          startsAt: session.startsAt,
-          endsAt: session.endsAt,
-          room: session.room
-        })
-        day.setDate(day.getDate() + 7)
-      }
-    }
-  }
-
-  return result.sort((a, b) => a.date.localeCompare(b.date)
-    || a.startsAt.localeCompare(b.startsAt))
-})
-
-const lessonsByDay = computed(() => {
-  const map = new Map<string, CalendarLesson[]>()
-  for (const lesson of calendarLessons.value) {
-    const lessons = map.get(lesson.date) ?? []
-    lessons.push(lesson)
-    map.set(lesson.date, lessons)
-  }
-  return map
-})
-
-const calendarTitle = computed(() => new Intl.DateTimeFormat('cs-CZ', {
-  month: 'long', year: 'numeric'
-}).format(new Date(calendarYear.value, calendarMonth.value, 1)))
-
-const calendarDays = computed<Array<string | null>>(() => {
-  const first = new Date(calendarYear.value, calendarMonth.value, 1)
-  const lastDay = new Date(calendarYear.value, calendarMonth.value + 1, 0).getDate()
-  const offset = (first.getDay() + 6) % 7
-  const cells: Array<string | null> = Array(offset).fill(null)
-  for (let day = 1; day <= lastDay; day++) {
-    cells.push(dateKey(new Date(calendarYear.value, calendarMonth.value, day)))
-  }
-  while (cells.length % 7 !== 0) cells.push(null)
-  return cells
-})
-
-const selectedDayLessons = computed(() => lessonsByDay.value.get(selectedCalendarDate.value) ?? [])
-const selectedDayTitle = computed(() => new Intl.DateTimeFormat('cs-CZ', {
-  day: 'numeric', month: 'long', year: 'numeric'
-}).format(dateFromKey(selectedCalendarDate.value)))
-
-function changeMonth(amount: number) {
-  const date = new Date(calendarYear.value, calendarMonth.value + amount, 1)
-  calendarYear.value = date.getFullYear()
-  calendarMonth.value = date.getMonth()
-  selectedCalendarDate.value = dateKey(date)
-}
-function goToToday() {
-  const date = new Date()
-  calendarYear.value = date.getFullYear()
-  calendarMonth.value = date.getMonth()
-  selectedCalendarDate.value = dateKey(date)
 }
 
 function cancellationDeadline(startDate: string): string {
@@ -369,7 +238,6 @@ async function saveProfile() {
             <h1 class="text-3xl font-semibold text-highlighted">Můj profil</h1>
             <p class="mt-2 text-sm text-muted">Moje lekce, přihlášky a osobní údaje.</p>
           </div>
-          <!-- Kreditní zůstatek JE ČÍSLO z databáze, nikoliv statický text. -->
           <div class="min-w-64 rounded-2xl border border-default bg-white px-7 py-5 shadow-sm">
             <div class="flex items-center gap-2 text-sm font-semibold text-orange-600">
               <UIcon name="i-lucide-coins" class="size-5" /> Moje kredity
@@ -379,25 +247,24 @@ async function saveProfile() {
               <span v-if="coursesData" class="text-sm font-normal text-muted">kreditů</span>
             </p>
             <div class="mt-3 flex items-center gap-2">
-              <UButton size="sm" icon="i-lucide-qr-code" @click="selectedTab = 'courses'; showTopUp = !showTopUp">Dobít</UButton>
+              <UButton :ui="{ base: 'cursor-pointer' }" size="sm" icon="i-lucide-qr-code" @click="selectedTab = 'courses'; showTopUp = !showTopUp">
+                Dobít
+              </UButton>
             </div>
           </div>
         </div>
 
-        <!-- Tři přehledné záložky podle návrhu, žádné funkce nemažeme. -->
+        <!-- Tři přehledné záložky podle návrhu. -->
         <div class="mb-7 grid max-w-2xl grid-cols-3 gap-1 rounded-xl bg-muted/50 p-1">
-          <button type="button"
-            class="rounded-lg px-3 py-3 text-sm font-semibold transition-colors"
-            :class="selectedTab === 'courses' ? 'bg-orange-500 text-white shadow-sm' : 'text-muted hover:text-highlighted'"
-            @click="selectedTab = 'courses'">Moje lekce</button>
-          <button type="button"
-            class="rounded-lg px-3 py-3 text-sm font-semibold transition-colors"
-            :class="selectedTab === 'calendar' ? 'bg-orange-500 text-white shadow-sm' : 'text-muted hover:text-highlighted'"
-            @click="selectedTab = 'calendar'">Můj kalendář</button>
-          <button type="button"
-            class="rounded-lg px-3 py-3 text-sm font-semibold transition-colors"
-            :class="selectedTab === 'edit' ? 'bg-orange-500 text-white shadow-sm' : 'text-muted hover:text-highlighted'"
-            @click="selectedTab = 'edit'">Mé údaje</button>
+          <UButton type="button" color="neutral" variant="ghost" :ui="{ base: 'cursor-pointer justify-center', padding: { sm: '', md: '' } }" class="px-3 py-3" :class="selectedTab === 'courses' ? 'bg-orange-500 text-white hover:bg-orange-500 hover:text-white' : ''" @click="selectedTab = 'courses'">
+            Moje lekce
+          </UButton>
+          <UButton type="button" color="neutral" variant="ghost" :ui="{ base: 'cursor-pointer justify-center', padding: { sm: '', md: '' } }" class="px-3 py-3" :class="selectedTab === 'calendar' ? 'bg-orange-500 text-white hover:bg-orange-500 hover:text-white' : ''" @click="selectedTab = 'calendar'">
+            Můj kalendář
+          </UButton>
+          <UButton type="button" color="neutral" variant="ghost" :ui="{ base: 'cursor-pointer justify-center', padding: { sm: '', md: '' } }" class="px-3 py-3" :class="selectedTab === 'edit' ? 'bg-orange-500 text-white hover:bg-orange-500 hover:text-white' : ''" @click="selectedTab = 'edit'">
+            Mé údaje
+          </UButton>
         </div>
 
         <section v-if="selectedTab !== 'edit'" class="space-y-6">
@@ -419,7 +286,7 @@ async function saveProfile() {
                 <UIcon name="i-lucide-qr-code" class="mr-2 size-6" /> Místo pro QR platbu
               </div>
             </div>
-            <div class="mt-4 text-right"><UButton color="neutral" variant="outline" @click="showTopUp = false">Zavřít</UButton></div>
+            <div class="mt-4 text-right"><UButton :ui="{ base: 'cursor-pointer' }" color="neutral" variant="outline" @click="showTopUp = false">Zavřít</UButton></div>
           </UCard>
 
           <UAlert v-if="coursesError" color="error" title="Kurzy a kredity se nepodařilo načíst">
@@ -428,64 +295,22 @@ async function saveProfile() {
           <p v-else-if="coursesPending && !coursesData" class="py-8 text-center text-muted">Načítání…</p>
 
           <template v-else-if="coursesData">
-            <!-- Kalendář lekcí, vypočítaný ze skutečných rozvrhů kurzů. -->
-            <UCard v-if="selectedTab === 'calendar'">
-              <template #header>
-                <div class="flex flex-wrap items-center justify-between gap-3">
-                  <h2 class="text-xl font-semibold">Můj kalendář lekcí</h2>
-                  <div class="flex items-center gap-1">
-                    <UButton color="neutral" variant="ghost" size="sm" icon="i-lucide-chevron-left" aria-label="Předchozí měsíc" @click="changeMonth(-1)" />
-                    <span class="min-w-36 text-center text-sm font-semibold capitalize">{{ calendarTitle }}</span>
-                    <UButton color="neutral" variant="ghost" size="sm" icon="i-lucide-chevron-right" aria-label="Následující měsíc" @click="changeMonth(1)" />
-                    <UButton color="neutral" variant="outline" size="xs" class="ml-2" @click="goToToday">Dnes</UButton>
-                  </div>
-                </div>
-              </template>
-
-              <div class="grid grid-cols-1 gap-6 md:grid-cols-[1fr_0.9fr]">
-                <div>
-                  <div class="grid grid-cols-7 gap-1 text-center">
-                    <div v-for="day in ['Po', 'Út', 'St', 'Čt', 'Pá', 'So', 'Ne']" :key="day" class="py-2 text-xs font-semibold text-muted">{{ day }}</div>
-                    <div v-for="(day, index) in calendarDays" :key="index">
-                      <button v-if="day" type="button"
-                        class="relative flex min-h-11 w-full flex-col items-center justify-center rounded-md border text-sm transition-colors"
-                        :class="day === selectedCalendarDate
-                          ? 'border-orange-500 bg-orange-50 font-semibold text-orange-700 dark:bg-orange-950/30'
-                          : day === todayKey
-                            ? 'border-orange-300 bg-default font-medium'
-                            : 'border-transparent hover:bg-muted/60'"
-                        :aria-label="`Zobrazit lekce ${formatDate(day)}`"
-                        @click="selectedCalendarDate = day">
-                        {{ Number(day.slice(-2)) }}
-                        <span v-if="lessonsByDay.has(day)" class="mt-1 size-1.5 rounded-full bg-orange-500" />
-                      </button>
-                    </div>
-                  </div>
-                  <p class="mt-3 text-xs text-muted">Oranžová tečka označuje plánovanou lekci podle týdenního rozvrhu.</p>
-                </div>
-                <div class="space-y-3">
-                  <h3 class="font-semibold">Lekce: {{ selectedDayTitle }}</h3>
-                  <p v-if="!selectedDayLessons.length" class="text-sm text-muted">Na tento den nemáte naplánovanou žádnou lekci.</p>
-                  <div v-for="lesson in selectedDayLessons" :key="lesson.key" class="rounded-lg border border-default p-3">
-                    <p class="font-semibold">{{ lesson.courseName }}</p>
-                    <p class="mt-1 text-sm text-muted">
-                      {{ formatTime(lesson.startsAt) }}–{{ formatTime(lesson.endsAt) }}
-                      <span v-if="lesson.room"> · {{ lesson.room }}</span>
-                    </p>
-                    <UButton :to="`/nase-tance/${lesson.courseId}`" color="neutral" variant="link" size="xs" class="mt-1 p-0">Detail kurzu</UButton>
-                  </div>
-                </div>
-              </div>
-            </UCard>
+            <div v-if="selectedTab === 'calendar'">
+              <CourseCalendar :courses="calendarCourses" />
+            </div>
 
             <div v-else class="space-y-6">
             <!-- Moje lekce: velké přehledné karty podle inspiračního obrázku. -->
             <div class="flex flex-wrap items-center justify-between gap-3">
               <div class="flex gap-2">
-                <UButton :variant="selectedCourseTab === 'active' ? 'solid' : 'outline'" @click="selectedCourseTab = 'active'">Aktuální ({{ activeCourses.length }})</UButton>
-                <UButton :variant="selectedCourseTab === 'history' ? 'solid' : 'outline'" @click="selectedCourseTab = 'history'">Historie</UButton>
+                <UButton :variant="selectedCourseTab === 'active' ? 'solid' : 'outline'" :ui="{ base: 'cursor-pointer' }" @click="selectedCourseTab = 'active'">
+                  Aktuální ({{ activeCourses.length }})
+                </UButton>
+                <UButton :variant="selectedCourseTab === 'history' ? 'solid' : 'outline'" :ui="{ base: 'cursor-pointer' }" @click="selectedCourseTab = 'history'">
+                  Historie
+                </UButton>
               </div>
-              <UButton to="/nase-tance" variant="outline" icon="i-lucide-plus">Najít kurz</UButton>
+              <UButton to="/our-dances" variant="outline" icon="i-lucide-plus">Najít kurz</UButton>
             </div>
 
             <UCard v-if="displayedCourses.length === 0">
@@ -496,7 +321,7 @@ async function saveProfile() {
                 <div class="grid gap-6 md:grid-cols-[minmax(0,1fr)_290px]">
                   <div class="space-y-3">
                     <div class="flex flex-wrap items-center gap-3">
-                      <NuxtLink :to="`/nase-tance/${enrollment.course.id}`" class="text-xl font-semibold text-orange-600 hover:underline">
+                      <NuxtLink :to="`/our-dances/${enrollment.course.id}`" class="text-xl font-semibold text-orange-600 hover:underline">
                         {{ enrollment.course.name }}
                       </NuxtLink>
                       <UBadge :color="enrollment.status === 'Registered' ? 'success' : 'neutral'" variant="subtle">
@@ -532,9 +357,12 @@ async function saveProfile() {
                       <strong>{{ formatCredit(enrollment.paidCredits ?? 0) }} kreditů</strong>
                     </div>
                     <div class="flex flex-wrap gap-2">
-                      <UButton :to="`/nase-tance/${enrollment.course.id}`" color="neutral" variant="outline" size="sm">Detail kurzu</UButton>
-                      <UButton v-if="canCancel(enrollment)" color="error" variant="outline" size="sm" icon="i-lucide-calendar-x"
-                        @click="confirmCancelId = enrollment.id; cancelError = ''">Odhlásit se</UButton>
+                      <UButton :to="`/our-dances/${enrollment.course.id}`" color="neutral" variant="outline" size="sm">
+                        Detail kurzu
+                      </UButton>
+                      <UButton v-if="canCancel(enrollment)" color="error" variant="outline" size="sm" icon="i-lucide-calendar-x" :ui="{ base: 'cursor-pointer' }" @click="confirmCancelId = enrollment.id; cancelError = ''">
+                        Odhlásit se
+                      </UButton>
                     </div>
                   </div>
                 </div>
@@ -594,8 +422,12 @@ async function saveProfile() {
                 </div>
                 <UAlert v-if="saveError" color="error" :title="saveError" />
                 <div class="flex justify-end gap-2">
-                  <UButton type="button" color="neutral" variant="outline" :disabled="isSaving" @click="resetForm">Zrušit změny</UButton>
-                  <UButton type="submit" icon="i-lucide-save" :loading="isSaving">Uložit změny</UButton>
+                  <UButton type="button" color="neutral" variant="outline" :disabled="isSaving" @click="resetForm" :ui="{ base: 'cursor-pointer' }">
+                    Zrušit změny
+                  </UButton>
+                  <UButton type="submit" icon="i-lucide-save" :loading="isSaving" :ui="{ base: 'cursor-pointer'}">
+                    Uložit změny
+                  </UButton>
                 </div>
               </form>
             </UCard>
@@ -604,7 +436,7 @@ async function saveProfile() {
               <template #header>
                 <div class="flex flex-wrap items-center justify-between gap-3">
                   <h2 class="text-lg font-semibold">Moji partneři</h2>
-                  <UButton to="/moji-partneri" size="sm" icon="i-lucide-plus">Přidat / upravit partnera</UButton>
+                  <UButton to="/our-dances/my-partners" size="sm" icon="i-lucide-plus">Přidat / upravit partnera</UButton>
                 </div>
               </template>
               <p v-if="partnersPending" class="text-sm text-muted">Načítání partnerů…</p>
@@ -617,7 +449,15 @@ async function saveProfile() {
                   <p class="font-semibold">{{ partner.firstName }} {{ partner.lastName }}</p>
                   <p v-if="partner.email" class="mt-1 break-all text-sm text-muted">{{ partner.email }}</p>
                   <p v-if="partner.phoneNumber" class="mt-1 text-sm text-muted">{{ partner.phoneNumber }}</p>
-                  <UButton :to="`/moji-partneri?edit=${partner.id}`" color="neutral" variant="link" size="xs" class="mt-1 p-0">Upravit</UButton>
+                  <UButton icon="i-lucide-pencil"
+                           variant="outline"
+                           color="neutral"
+                           size="sm"
+                           @click="startEditing(partner)"
+                           :to="`/our-dances/my-partners?edit=${partner.id}`"
+                           :ui="{ base: 'mt-1 cursor-pointer' }">
+                    Upravit
+                  </UButton>
                 </div>
               </div>
             </UCard>

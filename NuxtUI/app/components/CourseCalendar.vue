@@ -14,7 +14,7 @@ type CalendarCourse = {
   startDate: string
   endDate: string
   level: number
-  capacity: number
+  capacity?: number
   occupiedPlaces?: number
   instructors: string[]
   sessions?: CourseSession[]
@@ -183,10 +183,12 @@ function goToToday() {
           <p class="mt-1 text-sm text-muted">Vyberte den a zobrazte si kurzy, které se konají.</p>
         </div>
         <div class="flex items-center gap-1">
-          <UButton icon="i-lucide-chevron-left" color="neutral" variant="ghost" aria-label="Předchozí měsíc" @click="changeMonth(-1)" />
+          <UButton icon="i-lucide-chevron-left" color="neutral" variant="ghost" aria-label="Předchozí měsíc" @click="changeMonth(-1)" :ui="{ base: 'cursor-pointer' }" />
           <span class="min-w-36 text-center text-sm font-semibold capitalize">{{ monthTitle }}</span>
-          <UButton icon="i-lucide-chevron-right" color="neutral" variant="ghost" aria-label="Následující měsíc" @click="changeMonth(1)" />
-          <UButton size="xs" color="neutral" variant="outline" class="ml-1" @click="goToToday">Dnes</UButton>
+          <UButton icon="i-lucide-chevron-right" color="neutral" variant="ghost" aria-label="Následující měsíc" @click="changeMonth(1)" :ui="{ base: 'cursor-pointer' }" />
+          <UButton size="xs" color="neutral" variant="outline" class="ml-1" @click="goToToday" :ui="{ base: 'cursor-pointer' }">
+            Dnes
+          </UButton>
         </div>
       </div>
     </template>
@@ -201,7 +203,7 @@ function goToToday() {
             <button
               v-if="day"
               type="button"
-              class="flex min-h-12 w-full flex-col items-center justify-center rounded-lg border text-sm transition-colors"
+              class="flex min-h-12 w-full flex-col items-center justify-center rounded-lg border text-sm transition-colors hover:bg-orange-100 cursor-pointer"
               :class="day === selectedDay
                 ? 'border-orange-500 bg-orange-50 text-orange-700 font-semibold'
                 : day === todayKey
@@ -226,7 +228,7 @@ function goToToday() {
         <NuxtLink
           v-for="event in selectedEvents"
           :key="event.key"
-          :to="`/nase-tance/${event.course.id}`"
+          :to="`/our-dances/${event.course.id}`"
           class="block rounded-xl border border-default bg-default p-4 transition-colors hover:border-orange-400"
         >
           <div class="flex items-start justify-between gap-4">
@@ -243,7 +245,7 @@ function goToToday() {
                 Úroveň {{ event.course.level }} · {{ event.course.instructors.join(', ') || 'Lektor neuveden' }}
               </p>
             </div>
-            <span class="shrink-0 text-xs text-muted">
+            <span v-if="typeof event.course.capacity === 'number'" class="shrink-0 text-xs text-muted">
               {{ event.course.occupiedPlaces ?? '—' }}/{{ event.course.capacity }}
             </span>
           </div>
