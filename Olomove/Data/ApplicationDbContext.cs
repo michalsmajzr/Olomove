@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Olomove.Models.Users;
 using Olomove.Models.Courses;
+using Olomove.Models;
 
 namespace Olomove.Data;
 
@@ -23,7 +24,11 @@ public class ApplicationDbContext : IdentityDbContext<User, Role, Guid>
 
     public DbSet<SavedPartner> SavedPartners => Set<SavedPartner>();
 
-    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    public DbSet<AboutPage> AboutPages { get; set; }
+
+	public DbSet<ContactPage> ContactPages { get; set; }
+
+	protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
 
