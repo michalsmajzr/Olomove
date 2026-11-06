@@ -18,7 +18,7 @@ public class CourseEnrollmentConfiguration : IEntityTypeConfiguration<CourseEnro
 
         // Vztah s kurzem
         builder.HasOne(e => e.Course)
-            .WithMany()
+            .WithMany(c => c.CourseEnrollments)
             .HasForeignKey(e => e.CourseId)
             .OnDelete(DeleteBehavior.Cascade);
 

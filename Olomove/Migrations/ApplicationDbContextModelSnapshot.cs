@@ -139,7 +139,8 @@ namespace Olomove.Migrations
 
                     b.Property<string>("Title")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -159,15 +160,18 @@ namespace Olomove.Migrations
 
                     b.Property<string>("Address")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
 
                     b.Property<string>("City")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
 
                     b.Property<string>("Email")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
 
                     b.Property<string>("MapUrl")
                         .IsRequired()
@@ -175,15 +179,18 @@ namespace Olomove.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
 
                     b.Property<string>("Phone")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
 
                     b.Property<string>("PostCode")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -269,9 +276,6 @@ namespace Olomove.Migrations
                     b.Property<Guid>("CourseId")
                         .HasColumnType("uuid");
 
-                    b.Property<Guid?>("CourseId1")
-                        .HasColumnType("uuid");
-
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -304,8 +308,6 @@ namespace Olomove.Migrations
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("CourseId1");
 
                     b.HasIndex("SavedPartnerId");
 
@@ -685,14 +687,10 @@ namespace Olomove.Migrations
             modelBuilder.Entity("Olomove.Models.Courses.CourseEnrollment", b =>
                 {
                     b.HasOne("Olomove.Models.Courses.Course", "Course")
-                        .WithMany()
+                        .WithMany("CourseEnrollments")
                         .HasForeignKey("CourseId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.HasOne("Olomove.Models.Courses.Course", null)
-                        .WithMany("CourseEnrollments")
-                        .HasForeignKey("CourseId1");
 
                     b.HasOne("Olomove.Models.Users.SavedPartner", "SavedPartner")
                         .WithMany("CourseEnrollments")

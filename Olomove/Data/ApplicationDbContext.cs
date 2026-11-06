@@ -84,13 +84,6 @@ public class ApplicationDbContext : IdentityDbContext<User, Role, Guid>
             })
             .IsUnique();
 
-        // Vazba přihlášky na kurz.
-        modelBuilder.Entity<CourseEnrollment>()
-            .HasOne(enrollment => enrollment.Course)
-            .WithMany(course => course.CourseEnrollments)
-            .HasForeignKey(enrollment => enrollment.CourseId)
-            .OnDelete(DeleteBehavior.Cascade);
-
         // Vazba přihlášky na uživatele.
         modelBuilder.Entity<CourseEnrollment>()
             .HasOne(enrollment => enrollment.User)
