@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Olomove.Models.Users;
 using Olomove.Models.Courses;
+using Olomove.Models;
 
 namespace Olomove.Data;
 
@@ -23,7 +24,11 @@ public class ApplicationDbContext : IdentityDbContext<User, Role, Guid>
 
     public DbSet<SavedPartner> SavedPartners => Set<SavedPartner>();
 
-    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    public DbSet<AboutPage> AboutPages { get; set; }
+
+	public DbSet<ContactPage> ContactPages { get; set; }
+
+	protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
 
@@ -78,13 +83,6 @@ public class ApplicationDbContext : IdentityDbContext<User, Role, Guid>
                 enrollment.UserId
             })
             .IsUnique();
-
-        // Vazba přihlášky na kurz.
-        modelBuilder.Entity<CourseEnrollment>()
-            .HasOne(enrollment => enrollment.Course)
-            .WithMany(course => course.CourseEnrollments)
-            .HasForeignKey(enrollment => enrollment.CourseId)
-            .OnDelete(DeleteBehavior.Cascade);
 
         // Vazba přihlášky na uživatele.
         modelBuilder.Entity<CourseEnrollment>()

@@ -69,23 +69,23 @@ async function fetchCredits() {
 
 const guestMenuItems = [
   { label: 'Úvod', to: '/' },
-  { label: 'O nás', to: '/o-nas' },
-  { label: 'Lektoři', to: '/lektori' },
+  { label: 'O nás', to: '/about-us' },
+  { label: 'Lektoři', to: '/lecturers' },
   { label: 'Naše tance', to: '/our-dances' },
-  { label: 'Kontakty', to: '/kontakty' }
+  { label: 'Kontakty', to: '/contacts' }
 ]
 
 const signedInMenuItems = [
-  { label: 'Lektoři', to: '/lektori' },
+  { label: 'Lektoři', to: '/lecturers' },
   { label: 'Naše tance', to: '/our-dances' },
-  { label: 'Kontakty', to: '/kontakty' }
+  { label: 'Kontakty', to: '/contacts' }
 ]
 
 const adminMenuItems = [
-  { label: 'O nás', to: '/o-nas' },
+  { label: 'O nás', to: '/about-us' },
   { label: 'Uživatelé', to: '/admin/users' },
   { label: 'Plánování kurzů', to: '/admin/courses' },
-  { label: 'Kontakty', to: '/kontakty' }
+  { label: 'Kontakty', to: '/contacts' }
 ]
 
 const instructorMenuItems = [
