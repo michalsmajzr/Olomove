@@ -8,20 +8,14 @@ namespace Olomove.Controllers.Admin;
 
 [ApiController]
 [Route("api")]
-public class AboutController : ControllerBase
+public class AboutController(ApplicationDbContext context) : ControllerBase
 {
-	private readonly ApplicationDbContext _context;
-
-	public AboutController(ApplicationDbContext context)
-	{
-		_context = context;
-	}
 
 	// GET /api/about
 	[HttpGet("about")]
 	public async Task<ActionResult<AboutPage>> GetAbout()
 	{
-		var about = await _context.AboutPages.FirstOrDefaultAsync();
+		var about = await context.AboutPages.FirstOrDefaultAsync();
 
 		if (about == null)
 		{
@@ -31,8 +25,8 @@ public class AboutController : ControllerBase
 				Content = "Obsah",
 				UpdatedAt = DateTime.UtcNow
 			};
-			_context.AboutPages.Add(about);
-			await _context.SaveChangesAsync();
+            context.AboutPages.Add(about);
+			await context.SaveChangesAsync();
 		}
 
 		return Ok(about);
@@ -43,19 +37,19 @@ public class AboutController : ControllerBase
 	[Authorize(Roles = "Admin")]
 	public async Task<IActionResult> UpdateAbout([FromBody] AboutPageUpdateDto dto)
 	{
-		var about = await _context.AboutPages.FirstOrDefaultAsync();
+		var about = await context.AboutPages.FirstOrDefaultAsync();
 
 		if (about == null)
 		{
 			about = new AboutPage();
-			_context.AboutPages.Add(about);
+            context.AboutPages.Add(about);
 		}
 
 		about.Title = dto.Title;
 		about.Content = dto.Content;
 		about.UpdatedAt = DateTime.UtcNow;
 
-		await _context.SaveChangesAsync();
+		await context.SaveChangesAsync();
 
 		return NoContent();
 	}

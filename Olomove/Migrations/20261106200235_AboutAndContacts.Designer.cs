@@ -12,7 +12,7 @@ using Olomove.Data;
 namespace Olomove.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20261106125630_AboutAndContacts")]
+    [Migration("20261106200235_AboutAndContacts")]
     partial class AboutAndContacts
     {
         /// <inheritdoc />

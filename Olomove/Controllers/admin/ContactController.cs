@@ -8,26 +8,19 @@ namespace Olomove.Controllers.Admin;
 
 [ApiController]
 [Route("api")]
-public class ContactController : ControllerBase
+public class ContactController(ApplicationDbContext context) : ControllerBase
 {
-	private readonly ApplicationDbContext _context;
-
-	public ContactController(ApplicationDbContext context)
-	{
-		_context = context;
-	}
-
 	// GET /api/contact
 	[HttpGet("contact")]
 	public async Task<ActionResult<ContactPage>> GetContact()
 	{
-		var contact = await _context.ContactPages.FirstOrDefaultAsync();
+		var contact = await context.ContactPages.FirstOrDefaultAsync();
 
 		if (contact == null)
 		{
 			contact = new ContactPage();
-			_context.ContactPages.Add(contact);
-			await _context.SaveChangesAsync();
+            context.ContactPages.Add(contact);
+			await context.SaveChangesAsync();
 		}
 
 		return Ok(contact);
@@ -38,12 +31,12 @@ public class ContactController : ControllerBase
 	[Authorize(Roles = "Admin")]
 	public async Task<IActionResult> UpdateContact([FromBody] ContactPage dto)
 	{
-		var contact = await _context.ContactPages.FirstOrDefaultAsync();
+		var contact = await context.ContactPages.FirstOrDefaultAsync();
 
 		if (contact == null)
 		{
 			contact = new ContactPage();
-			_context.ContactPages.Add(contact);
+            context.ContactPages.Add(contact);
 		}
 
 		contact.Name = dto.Name;
@@ -55,7 +48,7 @@ public class ContactController : ControllerBase
 		contact.MapUrl = dto.MapUrl;
 		contact.UpdatedAt = DateTime.UtcNow;
 
-		await _context.SaveChangesAsync();
+		await context.SaveChangesAsync();
 
 		return NoContent();
 	}
