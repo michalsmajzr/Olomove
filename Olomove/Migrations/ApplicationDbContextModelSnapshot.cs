@@ -414,6 +414,44 @@ namespace Olomove.Migrations
                     b.ToTable("Rooms");
                 });
 
+            modelBuilder.Entity("Olomove.Models.Payments.CreditPayment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("numeric");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("CreditedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("VariableSymbol")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("VariableSymbol")
+                        .IsUnique();
+
+                    b.ToTable("CreditPayments");
+                });
+
             modelBuilder.Entity("Olomove.Models.Users.Role", b =>
                 {
                     b.Property<Guid>("Id")
@@ -746,6 +784,17 @@ namespace Olomove.Migrations
                     b.Navigation("Course");
 
                     b.Navigation("Room");
+                });
+
+            modelBuilder.Entity("Olomove.Models.Payments.CreditPayment", b =>
+                {
+                    b.HasOne("Olomove.Models.Users.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Olomove.Models.Users.SavedPartner", b =>

@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Olomove.Data;
 using Microsoft.EntityFrameworkCore;
+using Olomove.Data;
 using Olomove.Models.Users;
 
 namespace Olomove.Controllers.Admin;
@@ -50,6 +50,33 @@ public class UsersController(
         }
 
         return Ok(response);
+    }
+
+
+    [HttpDelete("{id:guid}")]
+    public async Task<IActionResult> DeleteUser(Guid id)
+    {
+        var currentUserId = userManager.GetUserId(User);
+        if (currentUserId == id.ToString())
+        {
+            return BadRequest("Nelze smazat.");
+        }
+
+        var user = await userManager.FindByIdAsync(id.ToString());
+        if (user == null)
+            return NotFound("Uživatel nebyl nalezen.");
+
+        var roles = await userManager.GetRolesAsync(user);
+        if (roles.Contains("Admin"))
+            return BadRequest("Nelze smazat administrátora.");
+
+        var result = await userManager.DeleteAsync(user);
+        if (!result.Succeeded)
+        {
+            return BadRequest("Uživatele se nepodařilo smazat.");
+        }
+
+        return NoContent();
     }
 
     public class ChangeRoleRequest
@@ -125,5 +152,38 @@ public class UsersController(
         }
 
         return NoContent();
+    }
+
+    [HttpPost("{id:guid}/adjust-credit")]
+    public async Task<IActionResult> AdjustCredit(Guid id, [FromBody] AdjustCreditRequest request)
+    {
+        await using var transaction = await dbContext.Database.BeginTransactionAsync();
+
+        var user = await dbContext.Users.FindAsync(id);
+        if (user is null)
+        {
+            return NotFound("Uživatel nebyl nalezen.");
+        }
+
+        if (!await userManager.IsInRoleAsync(user, "User"))
+        {
+            return BadRequest("Kredit lze upravovat pouze uživatelům.");
+        }
+
+        user.Credit += request.Amount;
+
+        if (user.Credit < 0)
+        {
+            return BadRequest("Uživatel nemůže mít záporný kredit.");
+        }
+        await dbContext.SaveChangesAsync();
+        await transaction.CommitAsync();
+
+        return Ok(new { user.Credit });
+    }
+
+    public class AdjustCreditRequest
+    {
+        public decimal Amount { get; set; }
     }
 }
