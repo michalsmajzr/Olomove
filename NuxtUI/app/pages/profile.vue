@@ -1,4 +1,6 @@
 <script setup lang="ts">
+  import QRCode from 'qrcode'
+
 definePageMeta({ middleware: 'user' })
 
 type CourseSession = {
@@ -54,6 +56,16 @@ type SavedPartner = {
   phoneNumber: string | null
 }
 
+type PaymentResponse = {
+  id: string
+  amount: number
+  variableSymbol: string
+  status: string
+  createdAt: string
+  qrPayload: string
+  accountName: string | null
+}
+
 const toast = useToast()
 const selectedTab = ref<'courses' | 'calendar' | 'edit'>('courses')
 const selectedCourseTab = ref<'active' | 'history'>('active')
@@ -62,6 +74,10 @@ const cancelingId = ref<string | null>(null)
 const cancelError = ref('')
 const showTopUp = ref(false)
 const topUpAmount = ref(500)
+const payment = ref<PaymentResponse | null>(null)
+const qrCodeDataUrl = ref('')
+const paymentPending = ref(false)
+const paymentError = ref('')
 
 const now = new Date()
 
@@ -143,6 +159,75 @@ function formatWeekday(value: string | number): string {
 }
 function formatCredit(value: number): string {
   return new Intl.NumberFormat('cs-CZ', { maximumFractionDigits: 2 }).format(value)
+}
+  async function generateQr(payload: string) {
+    qrCodeDataUrl.value = await QRCode.toDataURL(payload, {
+      errorCorrectionLevel: 'M',
+      margin: 2,
+      width: 200
+    })
+  }
+
+  onMounted(async () => {
+    void refreshCourses()
+    await fetchActivePayment()
+  })
+
+  async function fetchActivePayment() {
+    try {
+      const result = await $fetch<PaymentResponse>('/api/user/payments/active', {
+        credentials: 'include'
+      })
+      if (result) {
+        payment.value = result
+        await generateQr(result.qrPayload)
+      }
+    } catch {
+      payment.value = null
+    }
+  }
+
+  async function createPayment() {
+    const amount = Number(topUpAmount.value)
+    if (!Number.isFinite(amount) || amount < 1 || amount > 100000) {
+      paymentError.value = 'Částka musí být mezi 1 a 100 000 Kč.'
+      return
+    }
+
+    paymentPending.value = true
+    paymentError.value = ''
+    payment.value = null
+    qrCodeDataUrl.value = ''
+
+    try {
+      const result = await $fetch<PaymentResponse>('/api/user/payments', {
+        method: 'POST', credentials: 'include', body: { amount }
+      })
+      payment.value = result
+      await generateQr(result.qrPayload)
+    } catch (error: any) {
+      paymentError.value = error?.data?.detail || error?.data?.title || error?.data || 'QR platbu se nepodařilo vytvořit.'
+    } finally {
+      paymentPending.value = false
+    }
+  }
+
+  async function cancelActivePayment() {
+    if (!payment.value) return
+    try {
+      await $fetch(`/api/user/payments/${payment.value.id}/cancel`, {
+        method: 'DELETE', credentials: 'include'
+      })
+      resetPayment()
+      toast.add({ title: 'Platba zrušena', description: 'Nyní můžete zadat nový platební příkaz.', color: 'neutral' })
+    } catch {
+      toast.add({ title: 'Chyba', description: 'Platbu se nepodařilo zrušit.', color: 'error' })
+    }
+  }
+function resetPayment() {
+  payment.value = null
+  qrCodeDataUrl.value = ''
+  paymentError.value = ''
 }
 function enrollmentStatus(status: string): string {
   if (status === 'Registered') return 'Přihlášen/a'
@@ -247,7 +332,7 @@ async function saveProfile() {
               <span v-if="coursesData" class="text-sm font-normal text-muted">kreditů</span>
             </p>
             <div class="mt-3 flex items-center gap-2">
-              <UButton :ui="{ base: 'cursor-pointer' }" size="sm" icon="i-lucide-qr-code" @click="selectedTab = 'courses'; showTopUp = !showTopUp">
+              <UButton :ui="{ base: 'cursor-pointer' }" size="sm" icon="i-lucide-qr-code" @click="selectedTab = 'courses'; showTopUp = !showTopUp; fetchActivePayment()">
                 Dobít
               </UButton>
             </div>
@@ -268,25 +353,41 @@ async function saveProfile() {
         </div>
 
         <section v-if="selectedTab !== 'edit'" class="space-y-6">
-          <!-- Dobíjení je zatím pouze připravená vizuální část. -->
           <UCard v-if="showTopUp && selectedTab === 'courses'">
             <template #header>
               <div class="flex items-center justify-between gap-3">
                 <h2 class="font-semibold">Dobití kreditů</h2>
-                <UBadge color="warning" variant="subtle">Připravujeme</UBadge>
+                <UButton color="neutral" variant="ghost" icon="i-lucide-x" aria-label="Zavřít" :ui="{ base: 'cursor-pointer'}" @click="showTopUp = false; resetPayment()" />
               </div>
             </template>
-            <p class="mb-4 text-sm text-muted">Zde později zobrazíme platební QR kód. Zatím se nic neplatí a kredity se nepřipisují.</p>
-            <div class="grid gap-4 sm:grid-cols-2">
-              <div>
+            <p v-if="!payment" class="mb-4 text-sm text-muted">Zadejte částku a zobrazte platební QR kód. Kredity administrátor připíše po kontrole příchozí platby.</p>
+            <form v-if="!payment" class="flex flex-wrap items-end justify-between gap-4" @submit.prevent="createPayment">
+              <div class="w-full sm:w-48">
                 <label for="top-up-amount" class="mb-2 block text-sm font-medium">Částka v Kč</label>
-                <input id="top-up-amount" v-model.number="topUpAmount" type="number" min="1" step="1" class="w-full rounded-md border border-default bg-default px-3 py-2">
+                <UInput id="top-up-amount" v-model.number="topUpAmount" type="number" min="1" max="100000" step="0.01" required />
               </div>
-              <div class="flex min-h-24 items-center justify-center rounded-lg border border-dashed border-default text-muted">
-                <UIcon name="i-lucide-qr-code" class="mr-2 size-6" /> Místo pro QR platbu
+              <UButton type="submit" icon="i-lucide-qr-code" :loading="paymentPending" class="sm:ml-auto" :ui="{ base: 'cursor-pointer'}">Vytvořit QR platbu</UButton>
+            </form>
+
+            <UAlert v-if="paymentError" class="mt-4" color="error" :description="paymentError" />
+
+           
+            <div v-if="payment" class="mt-4 space-y-4">
+              <div class="grid gap-6 rounded-xl border border-default bg-muted/20 p-5 md:grid-cols-[200px_minmax(0,1fr)] md:items-center">
+                <img :src="qrCodeDataUrl" alt="QR kód platebního příkazu" class="mx-auto size-[200px] rounded-lg bg-white p-2 object-contain">
+                <div class="space-y-3 text-sm">
+                  <h3 class="text-lg font-semibold">Čeká se na úhradu platby</h3>
+                  <p>Částka: <strong>{{ formatCredit(payment.amount) }} Kč</strong></p>
+                  <p>Variabilní symbol: <strong>{{ payment.variableSymbol }}</strong></p>
+                  <p v-if="payment.accountName" class="text-muted">Příjemce: {{ payment.accountName }}</p>
+                </div>
+              </div>
+              <div class="flex justify-end">
+                <UButton color="neutral" variant="outline" size="sm" icon="i-lucide-trash-2" :ui="{ base: 'cursor-pointer'}" @click="cancelActivePayment">
+                  Zrušit tento platební příkaz
+                </UButton>
               </div>
             </div>
-            <div class="mt-4 text-right"><UButton :ui="{ base: 'cursor-pointer' }" color="neutral" variant="outline" @click="showTopUp = false">Zavřít</UButton></div>
           </UCard>
 
           <UAlert v-if="coursesError" color="error" title="Kurzy a kredity se nepodařilo načíst">

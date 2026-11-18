@@ -10,13 +10,24 @@ type CourseRow = {
   level: number
   startDate: string
   endDate: string
+  instructorIds: string[]
+  instructors: string[]
 }
+
+type InstructorOption = {
+    id: string
+    name: string
+  }
 
 const courses = ref<CourseRow[]>([])
 const isLoading = ref(true)
 const errorMessage = ref('')
 const route = useRoute()
 const toast = useToast()
+
+const instructors = ref<InstructorOption[]>([])
+const selectedInstructorId = ref<string>('ALL')
+const searchQuery = ref('')
 
 function formatDate(date: string) {
   const parts = date.split('-')
@@ -33,10 +44,28 @@ function formatDate(date: string) {
 
 const columns = [
   { accessorKey: 'name', header: 'Název kurzu' },
+  { accessorKey: 'instructors', header: 'Lektoři' },
   { accessorKey: 'period', header: 'Období kurzu' },
   { accessorKey: 'capacity', header: 'Kapacita' },
   { accessorKey: 'level', header: 'Úroveň' }
 ]
+
+  const instructorOptions = computed(() => [
+    { label: 'Všichni lektoři', value: 'ALL' },
+    ...instructors.value.map(i => ({ label: i.name, value: i.id }))
+  ])
+
+  const filteredCourses = computed(() => {
+    return courses.value.filter(course => {
+      if (selectedInstructorId.value !== 'ALL' && !course.instructorIds.includes(selectedInstructorId.value)) {
+        return false
+      }
+      if (searchQuery.value.trim() && !course.name.toLowerCase().includes(searchQuery.value.trim().toLowerCase())) {
+        return false
+      }
+      return true
+    })
+  })
 
 function handleRowSelect(rowOrEvent: { original?: CourseRow; id?: string } | Event, selectedRow?: { original?: CourseRow; id?: string }) {
   const row = selectedRow ?? (rowOrEvent instanceof Event ? undefined : rowOrEvent)
@@ -47,27 +76,33 @@ function handleRowSelect(rowOrEvent: { original?: CourseRow; id?: string } | Eve
   }
 }
 
-onMounted(async () => {
-  if (route.query.created === '1') {
-    toast.add({
-      title: 'Úspěch',
-      description: 'Kurz byl úspěšně vytvořen.',
-      color: 'success'
-    })
+  onMounted(async () => {
+    if (route.query.created === '1') {
+      toast.add({
+        title: 'Úspěch',
+        description: 'Kurz byl úspěšně vytvořen.',
+        color: 'success'
+      })
 
-    await navigateTo('/admin/courses', { replace: true })
-  }
+      await navigateTo('/admin/courses', { replace: true })
+    }
 
-  try {
-    courses.value = await $fetch<CourseRow[]>('/api/admin/courses', {
-      credentials: 'include'
-    })
-  } catch {
-    errorMessage.value = 'Seznam kurzů se nepodařilo načíst.'
-  } finally {
-    isLoading.value = false
-  }
-})
+    try {
+      const [coursesData, usersData] = await Promise.all([
+        $fetch<CourseRow[]>('/api/admin/courses', { credentials: 'include' }),
+        $fetch<{ id: string; name: string; role: string }[]>('/api/admin/users', { credentials: 'include' })
+      ])
+
+      courses.value = coursesData
+      instructors.value = usersData
+        .filter(u => u.role === 'Instructor')
+        .sort((a, b) => a.name.localeCompare(b.name, 'cs-CZ'))
+    } catch {
+      errorMessage.value = 'Seznam kurzů se nepodařilo načíst.'
+    } finally {
+      isLoading.value = false
+    }
+  })
 </script>
 
 <template>
@@ -95,11 +130,35 @@ onMounted(async () => {
             <h2 class="text-lg font-semibold text-highlighted">
               Seznam kurzů
             </h2>
+            <div class="flex flex-wrap items-center gap-3">
+              <UInput v-model="searchQuery"
+                      icon="i-lucide-search"
+                      placeholder="Hledat kurz…"
+                      size="sm"
+                      class="w-48 sm:w-56" />
+
+              <USelect v-model="selectedInstructorId"
+                       :items="instructorOptions"
+                       label-key="label"
+                       value-key="value"
+                       size="sm"
+                       class="w-56 sm:w-64" />
+
+              <UButton v-if="selectedInstructorId !== 'ALL' || searchQuery"
+                       size="sm"
+                       color="neutral"
+                       variant="ghost"
+                       icon="i-lucide-x"
+                       :ui="{ base: 'cursor-pointer' }"
+                       @click="selectedInstructorId = 'ALL'; searchQuery = ''">
+                Zrušit filtr
+              </UButton>
+            </div>
           </template>
 
           <UTable
             v-if="!isLoading && !errorMessage"
-            :data="courses"
+            :data="filteredCourses"
             :columns="columns"
             @select="handleRowSelect"
             class="w-full"

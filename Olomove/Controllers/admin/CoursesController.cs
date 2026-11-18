@@ -28,7 +28,10 @@ public class CoursesController(
                 course.Capacity,
                 course.Level,
                 course.StartDate,
-                course.EndDate
+                course.EndDate,
+                InstructorIds = course.CourseInstructors.Select(instructor => instructor.InstructorId),
+                Instructors = course.CourseInstructors
+                    .Select(instructor => $"{instructor.Instructor.FirstName} {instructor.Instructor.LastName}".Trim()).ToList()
             })
             .ToListAsync();
 

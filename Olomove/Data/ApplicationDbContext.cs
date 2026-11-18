@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Olomove.Models.Users;
 using Olomove.Models.Courses;
+using Olomove.Models.Payments;
 using Olomove.Models;
 
 namespace Olomove.Data;
@@ -23,6 +24,7 @@ public class ApplicationDbContext : IdentityDbContext<User, Role, Guid>
     public DbSet<Student> Students => Set<Student>();
 
     public DbSet<SavedPartner> SavedPartners => Set<SavedPartner>();
+    public DbSet<CreditPayment> CreditPayments => Set<CreditPayment>();
 
     public DbSet<AboutPage> AboutPages { get; set; }
 
@@ -55,6 +57,25 @@ public class ApplicationDbContext : IdentityDbContext<User, Role, Guid>
             .Property(courseSession => courseSession.Weekday)
             .HasConversion<string>()
             .HasMaxLength(9);
+
+        modelBuilder.Entity<CreditPayment>()
+            .Property(payment => payment.Status)
+            .HasConversion<string>()
+            .HasMaxLength(20);
+
+        modelBuilder.Entity<CreditPayment>()
+            .Property(payment => payment.VariableSymbol)
+            .HasMaxLength(10);
+
+        modelBuilder.Entity<CreditPayment>()
+            .HasIndex(payment => payment.VariableSymbol)
+            .IsUnique();
+
+        modelBuilder.Entity<CreditPayment>()
+            .HasOne(payment => payment.User)
+            .WithMany()
+            .HasForeignKey(payment => payment.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
 
         modelBuilder.Entity<CourseInstructor>()
             .HasKey(courseInstructor => new
